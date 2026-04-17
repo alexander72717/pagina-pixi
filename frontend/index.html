@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pixi Blocks Lab</title>
+    <link rel="stylesheet" href="./style.css" />
+    <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+  </head>
+  <body>
+    <main class="layout">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Programacion visual para robots</p>
+          <h1>Pixi Blocks Lab</h1>
+          <p class="subtitle">
+            Une bloques, genera codigo C++ para ESP32-S3 y prepara el camino
+            para que tu robot funcione sin estar conectado al PC.
+          </p>
+        </div>
+        <div class="status-card">
+          <h2>Estado del sistema</h2>
+          <p id="backend-status">Comprobando backend...</p>
+          <p id="serial-status">Web Serial aun no conectado.</p>
+        </div>
+      </section>
+
+      <section class="workspace-panel">
+        <div class="toolbar">
+          <input id="fqbn-input" type="text" value="esp32:esp32:esp32s3" />
+          <input id="port-input" type="text" value="COM5" />
+          <button id="run-check">Probar backend</button>
+          <button id="generate-btn">Compilar sketch</button>
+          <button id="upload-btn">Compilar y subir</button>
+          <button id="serial-btn">Buscar puerto USB</button>
+        </div>
+        <div class="content-grid">
+          <div id="blocklyDiv"></div>
+          <div class="code-panel">
+            <h2>Codigo generado</h2>
+            <pre id="generated-code"></pre>
+            <h2>Respuesta del backend</h2>
+            <pre id="backend-response"></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <xml id="toolbox" style="display: none">
+      <category name="Inicio" colour="#0f766e">
+        <block type="controls_repeat_ext"></block>
+        <block type="controls_if"></block>
+        <block type="logic_compare"></block>
+        <block type="math_number"></block>
+      </category>
+      <category name="Robot" colour="#ea580c">
+        <block type="robot_move_forward"></block>
+        <block type="robot_turn_left"></block>
+        <block type="robot_stop"></block>
+        <block type="robot_read_distance"></block>
+      </category>
+      <category name="LED" colour="#ca8a04">
+        <block type="robot_led_red"></block>
+        <block type="robot_led_green"></block>
+        <block type="robot_led_blue"></block>
+        <block type="robot_led_white"></block>
+        <block type="robot_led_off"></block>
+        <block type="robot_wait_ms"></block>
+      </category>
+    </xml>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,28 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "robot_led_on",
+        "id": "ro(fr+.96$mM1+ZB|e-N",
+        "x": 78,
+        "y": 30,
+        "next": {
+          "block": {
+            "type": "robot_wait_ms",
+            "id": "w6%=NQ[Mx6TEw=}30wOs",
+            "fields": {
+              "TIME_MS": 5000
+            },
+            "next": {
+              "block": {
+                "type": "robot_led_off",
+                "id": "R9*;RDaW7P6BxcReW2Co"
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

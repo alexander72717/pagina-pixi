@@ -1,0 +1,33 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "controls_repeat_ext",
+        "id": "1-_$d@%jYaM.H`j=s~h1",
+        "x": 144,
+        "y": 7,
+        "inputs": {
+          "TIMES": {
+            "block": {
+              "type": "math_number",
+              "id": "K[[!`mdhi6@GtAs:KIyM",
+              "fields": {
+                "NUM": 10
+              }
+            }
+          },
+          "DO": {
+            "block": {
+              "type": "robot_move_forward",
+              "id": "PL)|-~4`4kOR61!I4`)8",
+              "fields": {
+                "SPEED": 180
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

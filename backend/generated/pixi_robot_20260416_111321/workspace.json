@@ -1,0 +1,45 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "controls_repeat_ext",
+        "id": "rr?88yP+xTv1pT9b4F*K",
+        "x": 192,
+        "y": 42,
+        "inputs": {
+          "TIMES": {
+            "block": {
+              "type": "math_number",
+              "id": "Usl.G!pl=s{wd.s=tl(%",
+              "fields": {
+                "NUM": 10
+              }
+            }
+          },
+          "DO": {
+            "block": {
+              "type": "robot_led_on",
+              "id": "*q3Eg?hb?%|%Ep4v6f}a",
+              "next": {
+                "block": {
+                  "type": "robot_wait_ms",
+                  "id": "-crZYaxO=sLEM#%=3Yxp",
+                  "fields": {
+                    "TIME_MS": 2000
+                  },
+                  "next": {
+                    "block": {
+                      "type": "robot_led_off",
+                      "id": "Ru/`ZbBf!Y;U9`/`s;1M"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

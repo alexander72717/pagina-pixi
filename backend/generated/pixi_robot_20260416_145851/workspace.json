@@ -1,0 +1,82 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "robot_led_red",
+        "id": "i=CC[Y)TG:KA7o(BXCf7",
+        "x": 219,
+        "y": 42,
+        "next": {
+          "block": {
+            "type": "robot_wait_ms",
+            "id": "I%hi|h6ij)0awm2`8(1G",
+            "fields": {
+              "TIME_MS": 500
+            },
+            "next": {
+              "block": {
+                "type": "robot_led_green",
+                "id": "mu5_PA*PZ*|}Q]Te=ShC",
+                "next": {
+                  "block": {
+                    "type": "robot_wait_ms",
+                    "id": "^TadX$WGaeu~_foh--]u",
+                    "fields": {
+                      "TIME_MS": 500
+                    },
+                    "next": {
+                      "block": {
+                        "type": "robot_led_blue",
+                        "id": "0UVvj:E9{g@1uhzajPt1",
+                        "next": {
+                          "block": {
+                            "type": "robot_wait_ms",
+                            "id": "eMlYq5h|SgyLfrHtygDN",
+                            "fields": {
+                              "TIME_MS": 500
+                            },
+                            "next": {
+                              "block": {
+                                "type": "robot_led_white",
+                                "id": "IiE#(qEHE`F+jhrJ{%kb",
+                                "next": {
+                                  "block": {
+                                    "type": "robot_wait_ms",
+                                    "id": "1y+%O)]`3:itF:FRzb=$",
+                                    "fields": {
+                                      "TIME_MS": 500
+                                    },
+                                    "next": {
+                                      "block": {
+                                        "type": "robot_led_off",
+                                        "id": "I2fFH@!pKv-NY]/tl!L1",
+                                        "next": {
+                                          "block": {
+                                            "type": "robot_wait_ms",
+                                            "id": "z9%~hwh.Ot7B?j5*?MAA",
+                                            "fields": {
+                                              "TIME_MS": 500
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

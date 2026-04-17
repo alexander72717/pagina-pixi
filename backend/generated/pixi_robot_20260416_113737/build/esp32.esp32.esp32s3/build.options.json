@@ -1,0 +1,9 @@
+{
+  "additionalFiles": "..\\..\\..,..\\..",
+  "compiler.optimization_flags": "-Os",
+  "customBuildProperties": "",
+  "fqbn": "esp32:esp32:esp32s3",
+  "hardwareFolders": "C:\\Users\\samue\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.8,C:\\Users\\samue\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.8",
+  "otherLibrariesFolders": "C:\\Users\\samue\\Documents\\Arduino\\libraries",
+  "sketchLocation": "C:\\Users\\samue\\Desktop\\Spixers\\codigo\\pagina pixi\\backend\\generated\\pixi_robot_20260416_113737"
+}
