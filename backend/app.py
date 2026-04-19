@@ -24,6 +24,10 @@ def upload_supported():
     return not is_cloud_runtime()
 
 
+def compile_supported():
+    return not is_cloud_runtime()
+
+
 @app.get("/")
 def serve_index():
     return send_from_directory(FRONTEND_DIR, "index.html")
@@ -48,6 +52,8 @@ def health_check():
                 "arduino_cli": cli_info,
                 "runtime_mode": "cloud" if is_cloud_runtime() else "local",
                 "upload_supported": upload_supported(),
+                "compile_supported": compile_supported(),
+                "service_role": "compiler-and-web" if not is_cloud_runtime() else "web",
             }
         )
     except Exception as exc:
@@ -60,6 +66,7 @@ def health_check():
                     "error_detail": str(exc),
                     "runtime_mode": "cloud" if is_cloud_runtime() else "local",
                     "upload_supported": upload_supported(),
+                    "compile_supported": compile_supported(),
                 }
             ),
             500,
@@ -78,6 +85,22 @@ def generate_sketch():
         fqbn = payload.get("fqbn", "esp32:esp32:esp32s3")
         port = payload.get("port")
         upload = bool(payload.get("upload", False))
+
+        if not compile_supported():
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": (
+                            "Esta instancia publica sirve la web, pero no compila. "
+                            "Configura un compiler endpoint local en tu PC."
+                        ),
+                        "runtime_mode": "cloud",
+                        "service_role": "web",
+                    }
+                ),
+                400,
+            )
 
         if upload and not upload_supported():
             return (

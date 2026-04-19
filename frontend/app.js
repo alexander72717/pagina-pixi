@@ -1,5 +1,6 @@
 const isFrontendDevServer = window.location.hostname === "127.0.0.1" && window.location.port === "5500";
 const BACKEND_URL = isFrontendDevServer ? "http://127.0.0.1:5000" : window.location.origin;
+const DEFAULT_COMPILER_URL = "http://127.0.0.1:5000";
 
 function defineRobotBlocks() {
   Blockly.defineBlocksWithJsonArray([
@@ -212,6 +213,19 @@ const serialStatusEl = document.getElementById("serial-status");
 const fqbnInput = document.getElementById("fqbn-input");
 const portInput = document.getElementById("port-input");
 const uploadButton = document.getElementById("upload-btn");
+const compilerUrlInput = document.getElementById("compiler-url-input");
+
+const savedCompilerUrl = window.localStorage.getItem("pixi_compiler_url");
+compilerUrlInput.value = savedCompilerUrl || DEFAULT_COMPILER_URL;
+
+function getCompilerUrl() {
+  const raw = compilerUrlInput.value.trim();
+  return raw || DEFAULT_COMPILER_URL;
+}
+
+function persistCompilerUrl() {
+  window.localStorage.setItem("pixi_compiler_url", getCompilerUrl());
+}
 
 function refreshGeneratedCode() {
   try {
@@ -235,19 +249,44 @@ async function checkBackend() {
       : " Arduino CLI no disponible.";
     const runtimeMessage =
       data.runtime_mode === "cloud"
-        ? " Modo online: compila en Render."
-        : " Modo local: compila y puede subir por USB.";
-    backendStatusEl.textContent = `${data.status}: ${data.message}${cliMessage}${runtimeMessage}`;
-    uploadButton.disabled = !data.upload_supported;
-    uploadButton.title = data.upload_supported
-      ? ""
-      : "En la version online la subida directa por USB no esta habilitada.";
+        ? " Modo online: interfaz publica."
+        : " Modo local: servicio compilador activo.";
+    const roleMessage =
+      data.service_role === "web"
+        ? " Esta instancia publica sirve la interfaz."
+        : " Esta instancia puede servir como compilador local.";
+    backendStatusEl.textContent = `${data.status}: ${data.message}${cliMessage}${runtimeMessage}${roleMessage}`;
   } catch (error) {
     backendStatusEl.textContent = `No se pudo conectar al backend: ${error.message}`;
   }
 }
 
+async function checkCompiler() {
+  persistCompilerUrl();
+
+  try {
+    const response = await fetch(`${getCompilerUrl()}/api/health`);
+    const rawText = await response.text();
+    const data = JSON.parse(rawText);
+    const compileMessage = data.compile_supported
+      ? " Compilacion disponible."
+      : " Esta instancia no compila.";
+    const uploadMessage = data.upload_supported
+      ? " Subida USB disponible."
+      : " Subida USB no disponible.";
+    backendResponseEl.textContent = JSON.stringify(data, null, 2);
+    serialStatusEl.textContent = `${data.status}: compiler endpoint conectado.${compileMessage}${uploadMessage}`;
+    uploadButton.disabled = !data.upload_supported;
+    uploadButton.title = data.upload_supported
+      ? ""
+      : "Este compiler endpoint no permite subida directa por USB.";
+  } catch (error) {
+    serialStatusEl.textContent = `No se pudo conectar al compiler endpoint: ${error.message}`;
+  }
+}
+
 async function sendSketch(upload = false) {
+  persistCompilerUrl();
   const cppCode = cppGenerator.workspaceToCode(workspace).trim();
 
   if (!cppCode) {
@@ -256,7 +295,7 @@ async function sendSketch(upload = false) {
   }
 
   try {
-    const response = await fetch(`${BACKEND_URL}/api/generate`, {
+    const response = await fetch(`${getCompilerUrl()}/api/generate`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -301,8 +340,11 @@ async function requestSerialPort() {
 }
 
 document.getElementById("run-check").addEventListener("click", checkBackend);
+document.getElementById("compiler-check").addEventListener("click", checkCompiler);
 document.getElementById("generate-btn").addEventListener("click", () => sendSketch(false));
 document.getElementById("upload-btn").addEventListener("click", () => sendSketch(true));
 document.getElementById("serial-btn").addEventListener("click", requestSerialPort);
+compilerUrlInput.addEventListener("change", persistCompilerUrl);
 
 checkBackend();
+checkCompiler();

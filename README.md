@@ -145,16 +145,56 @@ En local:
 En Render:
 
 - Frontend online.
-- Backend online.
-- Compilacion online.
-- El boton de subir por USB quedara desactivado en modo cloud.
+- Backend online ligero.
+- Compilacion delegada a un compiler endpoint.
+- El boton de subir por USB depende del compiler endpoint, no de Render.
 
 En otras palabras:
 
-- `Render` compila.
+- `Render` sirve la app publica.
+- El compiler endpoint ejecuta la compilacion.
 - El navegador del usuario interactua con el hardware.
 
-## 11. Archivos agregados para Render
+## 11. Arquitectura escalable que usaremos desde ahora
+
+Desde esta fase vamos a tratar el sistema como dos servicios separados:
+
+1. `Web App`
+   sirve la interfaz, configuracion y futuras funciones publicas.
+
+2. `Compiler Service`
+   recibe codigo, compila y opcionalmente sube a la placa.
+
+Hoy:
+
+- `Web App` en `Render`
+- `Compiler Service` en tu PC
+
+Manana:
+
+- `Web App` puede quedarse en `Render`
+- `Compiler Service` puede moverse a una Raspberry, VPS o worker dedicado
+
+Lo importante es que el frontend ya no depende de que ambos esten en el mismo servidor.
+
+## 12. Como usar la version hibrida Render + compilador local
+
+En la interfaz ahora existe un campo llamado `compiler endpoint`.
+
+Valor recomendado en tu PC:
+
+```text
+http://127.0.0.1:5000
+```
+
+Flujo:
+
+1. Abres la web publica de `Render`.
+2. La web usa `Render` para cargar la interfaz.
+3. La web llama a tu `compiler endpoint` local para compilar.
+4. Si estas en tu PC, tambien puede subir a la placa por USB.
+
+## 13. Archivos agregados para Render
 
 Se dejaron preparados estos archivos:
 
@@ -164,7 +204,7 @@ Se dejaron preparados estos archivos:
 
 La app ahora tambien puede servir el frontend y el backend desde un mismo servicio `Flask`, lo que simplifica el despliegue.
 
-## 12. Pasos para desplegar en Render
+## 14. Pasos para desplegar en Render
 
 Hay una parte que yo no puedo hacer por ti desde aqui porque requiere tu cuenta:
 
@@ -177,20 +217,21 @@ Hay una parte que yo no puedo hacer por ti desde aqui porque requiere tu cuenta:
 
 Como ya dejamos `render.yaml` y `Dockerfile`, Render deberia detectar muy bien la configuracion.
 
-## 13. Flujo recomendado en Render
+## 15. Flujo recomendado en Render
 
 Cuando el deploy este listo, la URL online tendra este comportamiento:
 
 - `GET /` abre la interfaz Blockly.
 - `GET /api/health` informa si `arduino-cli` esta disponible y si el servicio esta en modo local o cloud.
-- `POST /api/generate` compila sketches.
+- `POST /api/generate` en cloud devolvera un mensaje indicando que debes usar un compiler endpoint.
 
 En modo cloud:
 
-- `Compilar sketch` debe funcionar.
-- `Compilar y subir` debe quedar desactivado.
+- `Probar backend` verifica la web publica.
+- `Probar compilador` verifica tu compiler endpoint.
+- `Compilar sketch` y `Compilar y subir` deben apuntar al compiler endpoint configurado.
 
-## 14. Bloqueo de Windows que ya encontramos
+## 16. Bloqueo de Windows que ya encontramos
 
 En este equipo encontramos un problema real de Windows 11:
 
@@ -204,7 +245,7 @@ Una directiva de Control de aplicaciones bloqueó este archivo.
 
 revisa esa configuracion porque ya vimos que afecta directamente la compilacion para `ESP32-S3`.
 
-## 15. Sobre el tema de "sin drivers"
+## 17. Sobre el tema de "sin drivers"
 
 Hay un punto importante aqui: en muchos casos el `ESP32-S3` funciona como dispositivo USB serial nativo y Windows puede reconocerlo con drivers genericos, pero eso no significa que podamos prometer "sin drivers" en todos los equipos. Depende de:
 
@@ -215,17 +256,17 @@ Hay un punto importante aqui: en muchos casos el `ESP32-S3` funciona como dispos
 
 En otras palabras: podemos diseñar la experiencia para que el usuario no tenga que instalar herramientas complejas, pero todavia hay que validar tu modelo exacto de placa para saber si realmente sera "plug and play" en Windows.
 
-## 16. Siguiente paso recomendado
+## 18. Siguiente paso recomendado
 
 Despues de probar esta base, el siguiente trabajo tecnico seria:
 
 1. Publicar el prototipo en `Render`.
-2. Confirmar compilacion online.
+2. Confirmar la arquitectura `Render + compiler endpoint local`.
 3. Mantener el flashing USB en local/navegador.
 4. Seguir agregando bloques utiles.
 5. Luego pasar a sensores, motores o guardado de proyectos.
 
-## 17. Informacion que me ayudara despues
+## 19. Informacion que me ayudara despues
 
 Cuando quieras seguir con la siguiente fase, me servira que me pases:
 
