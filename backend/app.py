@@ -39,16 +39,31 @@ def serve_frontend_asset(path: str):
 
 @app.get("/api/health")
 def health_check():
-    cli_info = detect_arduino_cli()
-    return jsonify(
-        {
-            "status": "ok",
-            "message": "Backend listo para generar sketches de ESP32-S3.",
-            "arduino_cli": cli_info,
-            "runtime_mode": "cloud" if is_cloud_runtime() else "local",
-            "upload_supported": upload_supported(),
-        }
-    )
+    try:
+        cli_info = detect_arduino_cli()
+        return jsonify(
+            {
+                "status": "ok",
+                "message": "Backend listo para generar sketches de ESP32-S3.",
+                "arduino_cli": cli_info,
+                "runtime_mode": "cloud" if is_cloud_runtime() else "local",
+                "upload_supported": upload_supported(),
+            }
+        )
+    except Exception as exc:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "El endpoint de salud fallo dentro del servidor.",
+                    "error_type": type(exc).__name__,
+                    "error_detail": str(exc),
+                    "runtime_mode": "cloud" if is_cloud_runtime() else "local",
+                    "upload_supported": upload_supported(),
+                }
+            ),
+            500,
+        )
 
 
 @app.post("/api/generate")

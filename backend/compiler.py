@@ -28,10 +28,11 @@ def detect_arduino_cli():
             "available": True,
             "version": completed.stdout.strip() or completed.stderr.strip(),
         }
-    except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+    except Exception as exc:
         return {
             "available": False,
             "version": str(exc),
+            "error_type": type(exc).__name__,
         }
 
 
