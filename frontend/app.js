@@ -253,6 +253,32 @@ function persistCompilerUrl() {
   window.localStorage.setItem("pixi_compiler_url", getCompilerUrl());
 }
 
+function isInsecureCompilerEndpointFromSecurePage() {
+  return window.location.protocol === "https:" && getCompilerUrl().startsWith("http://");
+}
+
+function getCompilerEndpointErrorMessage() {
+  if (isInsecureCompilerEndpointFromSecurePage()) {
+    return [
+      "No se puede conectar al compiler endpoint desde esta pagina online.",
+      "",
+      "Causa probable:",
+      "la web esta cargada por HTTPS en Render, pero el compiler endpoint local usa HTTP.",
+      "",
+      "Que puedes hacer ahora:",
+      "1. Usa la version local de la web en http://127.0.0.1:5500 para compilar.",
+      "2. O prepara mas adelante un compiler service local con HTTPS.",
+    ].join("\n");
+  }
+
+  return [
+    "No se pudo conectar al compiler endpoint.",
+    "",
+    "Revisa que el compilador local este corriendo en tu PC:",
+    "http://127.0.0.1:5000/api/health",
+  ].join("\n");
+}
+
 function setBoardOptions(boards) {
   const entries = Object.entries(boards || {});
   if (!entries.length) {
@@ -308,10 +334,10 @@ function stopFakeProgress(finalValue, message, title = "Proceso actual") {
 }
 
 function startFakeProgress(upload = false) {
-  stopFakeProgress(0, upload ? "Preparando compilacion y subida..." : "Preparando compilacion...");
-  let target = upload ? 94 : 88;
+  stopFakeProgress(5, upload ? "Preparando compilacion y subida..." : "Preparando compilacion...");
+  const target = upload ? 90 : 82;
   progressTimer = window.setInterval(() => {
-    const increment = progressValue < 35 ? 8 : progressValue < 70 ? 4 : 1.5;
+    const increment = progressValue < 20 ? 4 : progressValue < 50 ? 2.5 : 0.8;
     if (progressValue < target) {
       setProgress(
         progressValue + increment,
@@ -401,6 +427,15 @@ async function checkBackend() {
 async function checkCompiler() {
   persistCompilerUrl();
 
+  if (isInsecureCompilerEndpointFromSecurePage()) {
+    serialStatusEl.textContent = "No se puede probar un compiler endpoint HTTP desde la pagina HTTPS de Render.";
+    backendResponseEl.textContent = getCompilerEndpointErrorMessage();
+    uploadButton.dataset.allowed = "false";
+    uploadButton.disabled = true;
+    uploadButton.title = "Abre la version local de la web o usa un compiler endpoint con HTTPS.";
+    return;
+  }
+
   try {
     const response = await fetch(`${getCompilerUrl()}/api/health`);
     const rawText = await response.text();
@@ -423,6 +458,7 @@ async function checkCompiler() {
     }
   } catch (error) {
     serialStatusEl.textContent = `No se pudo conectar al compiler endpoint: ${error.message}`;
+    backendResponseEl.textContent = getCompilerEndpointErrorMessage();
   }
 }
 
@@ -433,6 +469,13 @@ async function sendSketch(upload = false) {
 
   if (!cppCode) {
     backendResponseEl.textContent = "Primero agrega algunos bloques para poder generar codigo.";
+    return;
+  }
+
+  if (isInsecureCompilerEndpointFromSecurePage()) {
+    backendResponseEl.textContent = getCompilerEndpointErrorMessage();
+    serialStatusEl.textContent = "La compilacion desde Render hacia un compiler endpoint HTTP local esta bloqueada por el navegador.";
+    stopFakeProgress(0, "Conexion bloqueada antes de iniciar.", upload ? "Compilar y subir" : "Compilar sketch");
     return;
   }
 
@@ -461,17 +504,17 @@ async function sendSketch(upload = false) {
       const data = JSON.parse(rawText);
       backendResponseEl.textContent = JSON.stringify(data, null, 2);
       stopFakeProgress(
-        data.status === "ok" ? 100 : 100,
+        data.status === "ok" ? 100 : 0,
         data.message || "Proceso finalizado.",
         upload ? "Compilar y subir" : "Compilar sketch"
       );
     } catch {
       backendResponseEl.textContent = `El backend no devolvio JSON.\n\nHTTP ${response.status}\n\n${rawText}`;
-      stopFakeProgress(100, "La operacion termino con una respuesta inesperada.", upload ? "Compilar y subir" : "Compilar sketch");
+      stopFakeProgress(0, "La operacion termino con una respuesta inesperada.", upload ? "Compilar y subir" : "Compilar sketch");
     }
   } catch (error) {
-    backendResponseEl.textContent = `Error enviando al backend: ${error.message}`;
-    stopFakeProgress(100, `Error: ${error.message}`, upload ? "Compilar y subir" : "Compilar sketch");
+    backendResponseEl.textContent = `Error enviando al backend: ${error.message}\n\n${getCompilerEndpointErrorMessage()}`;
+    stopFakeProgress(0, `Error: ${error.message}`, upload ? "Compilar y subir" : "Compilar sketch");
   } finally {
     setBusyState(false);
   }

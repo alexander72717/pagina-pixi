@@ -49,7 +49,7 @@ def health_check():
         return jsonify(
             {
                 "status": "ok",
-                "message": "Backend listo para generar sketches de ESP32-S3.",
+                "message": "Backend listo para el flujo de compilacion de placas ESP32.",
                 "arduino_cli": cli_info,
                 "runtime_mode": "cloud" if is_cloud_runtime() else "local",
                 "upload_supported": upload_supported(),
