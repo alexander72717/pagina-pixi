@@ -1,6 +1,7 @@
 const isFrontendDevServer = window.location.hostname === "127.0.0.1" && window.location.port === "5500";
 const BACKEND_URL = isFrontendDevServer ? "http://127.0.0.1:5000" : window.location.origin;
 const DEFAULT_COMPILER_URL = "http://127.0.0.1:5000";
+const DEFAULT_PROJECT_NAME = "mi_proyecto";
 
 function defineRobotBlocks() {
   Blockly.defineBlocksWithJsonArray([
@@ -214,9 +215,34 @@ const fqbnInput = document.getElementById("fqbn-input");
 const portInput = document.getElementById("port-input");
 const uploadButton = document.getElementById("upload-btn");
 const compilerUrlInput = document.getElementById("compiler-url-input");
+const projectNameInput = document.getElementById("project-name-input");
+const boardSelect = document.getElementById("board-select");
+const generateButton = document.getElementById("generate-btn");
+const saveProjectButton = document.getElementById("save-project-btn");
+const loadProjectButton = document.getElementById("load-project-btn");
+const progressTitleEl = document.getElementById("progress-title");
+const progressPercentEl = document.getElementById("progress-percent");
+const progressBarEl = document.getElementById("progress-bar");
+const progressMessageEl = document.getElementById("progress-message");
 
 const savedCompilerUrl = window.localStorage.getItem("pixi_compiler_url");
 compilerUrlInput.value = savedCompilerUrl || DEFAULT_COMPILER_URL;
+projectNameInput.value = window.localStorage.getItem("pixi_project_name") || DEFAULT_PROJECT_NAME;
+
+let progressValue = 0;
+let progressTimer = null;
+
+function normalizeProjectName() {
+  const raw = projectNameInput.value.trim();
+  const safe = raw || DEFAULT_PROJECT_NAME;
+  projectNameInput.value = safe;
+  window.localStorage.setItem("pixi_project_name", safe);
+  return safe;
+}
+
+function getProjectStorageKey() {
+  return `pixi_saved_project_${normalizeProjectName()}`;
+}
 
 function getCompilerUrl() {
   const raw = compilerUrlInput.value.trim();
@@ -225,6 +251,114 @@ function getCompilerUrl() {
 
 function persistCompilerUrl() {
   window.localStorage.setItem("pixi_compiler_url", getCompilerUrl());
+}
+
+function setBoardOptions(boards) {
+  const entries = Object.entries(boards || {});
+  if (!entries.length) {
+    return;
+  }
+
+  const savedBoardId = window.localStorage.getItem("pixi_board_id") || "esp32-s3-zero";
+
+  boardSelect.innerHTML = "";
+
+  entries.forEach(([boardId, profile]) => {
+    const option = document.createElement("option");
+    option.value = boardId;
+    option.textContent = profile.label || boardId;
+    boardSelect.appendChild(option);
+  });
+
+  boardSelect.value = entries.some(([boardId]) => boardId === savedBoardId)
+    ? savedBoardId
+    : entries[0][0];
+
+  updateBoardSelectionFromUI(boards);
+}
+
+function updateBoardSelectionFromUI(boardsMap = null) {
+  const boards = boardsMap || window.pixiBoards || {};
+  const profile = boards[boardSelect.value];
+  if (!profile) {
+    return;
+  }
+
+  window.pixiBoards = boards;
+  fqbnInput.value = profile.fqbn || fqbnInput.value;
+  window.localStorage.setItem("pixi_board_id", boardSelect.value);
+}
+
+function setProgress(value, message, title = "Proceso actual") {
+  progressValue = Math.max(0, Math.min(100, value));
+  progressBarEl.style.width = `${progressValue}%`;
+  progressPercentEl.textContent = `${Math.round(progressValue)}%`;
+  progressTitleEl.textContent = title;
+  if (message) {
+    progressMessageEl.textContent = message;
+  }
+}
+
+function stopFakeProgress(finalValue, message, title = "Proceso actual") {
+  if (progressTimer) {
+    window.clearInterval(progressTimer);
+    progressTimer = null;
+  }
+  setProgress(finalValue, message, title);
+}
+
+function startFakeProgress(upload = false) {
+  stopFakeProgress(0, upload ? "Preparando compilacion y subida..." : "Preparando compilacion...");
+  let target = upload ? 94 : 88;
+  progressTimer = window.setInterval(() => {
+    const increment = progressValue < 35 ? 8 : progressValue < 70 ? 4 : 1.5;
+    if (progressValue < target) {
+      setProgress(
+        progressValue + increment,
+        upload ? "Compilando y preparando la carga a la placa..." : "Compilando el proyecto..."
+      );
+    }
+  }, upload ? 500 : 400);
+}
+
+function setBusyState(isBusy) {
+  generateButton.disabled = isBusy;
+  uploadButton.disabled = isBusy || uploadButton.dataset.allowed === "false";
+  saveProjectButton.disabled = isBusy;
+  loadProjectButton.disabled = isBusy;
+}
+
+function saveProjectToBrowser() {
+  try {
+    const projectName = normalizeProjectName();
+    const payload = {
+      name: projectName,
+      saved_at: new Date().toISOString(),
+      workspace: Blockly.serialization.workspaces.save(workspace),
+    };
+    window.localStorage.setItem(getProjectStorageKey(), JSON.stringify(payload));
+    backendResponseEl.textContent = `Proyecto "${projectName}" guardado correctamente en este navegador.`;
+  } catch (error) {
+    backendResponseEl.textContent = `No se pudo guardar el proyecto: ${error.message}`;
+  }
+}
+
+function loadProjectFromBrowser() {
+  try {
+    const projectName = normalizeProjectName();
+    const raw = window.localStorage.getItem(getProjectStorageKey());
+
+    if (!raw) {
+      backendResponseEl.textContent = `No existe un proyecto guardado con el nombre "${projectName}".`;
+      return;
+    }
+
+    const payload = JSON.parse(raw);
+    Blockly.serialization.workspaces.load(payload.workspace || {}, workspace);
+    backendResponseEl.textContent = `Proyecto "${projectName}" cargado correctamente.`;
+  } catch (error) {
+    backendResponseEl.textContent = `No se pudo cargar el proyecto: ${error.message}`;
+  }
 }
 
 function refreshGeneratedCode() {
@@ -256,6 +390,9 @@ async function checkBackend() {
         ? " Esta instancia publica sirve la interfaz."
         : " Esta instancia puede servir como compilador local.";
     backendStatusEl.textContent = `${data.status}: ${data.message}${cliMessage}${runtimeMessage}${roleMessage}`;
+    if (data.boards) {
+      setBoardOptions(data.boards);
+    }
   } catch (error) {
     backendStatusEl.textContent = `No se pudo conectar al backend: ${error.message}`;
   }
@@ -276,10 +413,14 @@ async function checkCompiler() {
       : " Subida USB no disponible.";
     backendResponseEl.textContent = JSON.stringify(data, null, 2);
     serialStatusEl.textContent = `${data.status}: compiler endpoint conectado.${compileMessage}${uploadMessage}`;
+    uploadButton.dataset.allowed = data.upload_supported ? "true" : "false";
     uploadButton.disabled = !data.upload_supported;
     uploadButton.title = data.upload_supported
       ? ""
       : "Este compiler endpoint no permite subida directa por USB.";
+    if (data.boards) {
+      setBoardOptions(data.boards);
+    }
   } catch (error) {
     serialStatusEl.textContent = `No se pudo conectar al compiler endpoint: ${error.message}`;
   }
@@ -287,6 +428,7 @@ async function checkCompiler() {
 
 async function sendSketch(upload = false) {
   persistCompilerUrl();
+  normalizeProjectName();
   const cppCode = cppGenerator.workspaceToCode(workspace).trim();
 
   if (!cppCode) {
@@ -295,14 +437,16 @@ async function sendSketch(upload = false) {
   }
 
   try {
+    setBusyState(true);
+    startFakeProgress(upload);
     const response = await fetch(`${getCompilerUrl()}/api/generate`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        project_name: "pixi_robot",
-        board: "esp32-s3-zero",
+        project_name: normalizeProjectName(),
+        board: boardSelect.value || "esp32-s3-zero",
         fqbn: fqbnInput.value.trim() || "esp32:esp32:esp32s3",
         port: portInput.value.trim(),
         upload,
@@ -316,11 +460,20 @@ async function sendSketch(upload = false) {
     try {
       const data = JSON.parse(rawText);
       backendResponseEl.textContent = JSON.stringify(data, null, 2);
+      stopFakeProgress(
+        data.status === "ok" ? 100 : 100,
+        data.message || "Proceso finalizado.",
+        upload ? "Compilar y subir" : "Compilar sketch"
+      );
     } catch {
       backendResponseEl.textContent = `El backend no devolvio JSON.\n\nHTTP ${response.status}\n\n${rawText}`;
+      stopFakeProgress(100, "La operacion termino con una respuesta inesperada.", upload ? "Compilar y subir" : "Compilar sketch");
     }
   } catch (error) {
     backendResponseEl.textContent = `Error enviando al backend: ${error.message}`;
+    stopFakeProgress(100, `Error: ${error.message}`, upload ? "Compilar y subir" : "Compilar sketch");
+  } finally {
+    setBusyState(false);
   }
 }
 
@@ -341,10 +494,15 @@ async function requestSerialPort() {
 
 document.getElementById("run-check").addEventListener("click", checkBackend);
 document.getElementById("compiler-check").addEventListener("click", checkCompiler);
-document.getElementById("generate-btn").addEventListener("click", () => sendSketch(false));
-document.getElementById("upload-btn").addEventListener("click", () => sendSketch(true));
+generateButton.addEventListener("click", () => sendSketch(false));
+uploadButton.addEventListener("click", () => sendSketch(true));
 document.getElementById("serial-btn").addEventListener("click", requestSerialPort);
 compilerUrlInput.addEventListener("change", persistCompilerUrl);
+projectNameInput.addEventListener("change", normalizeProjectName);
+boardSelect.addEventListener("change", () => updateBoardSelectionFromUI());
+saveProjectButton.addEventListener("click", saveProjectToBrowser);
+loadProjectButton.addEventListener("click", loadProjectFromBrowser);
 
 checkBackend();
 checkCompiler();
+setProgress(0, "Sin actividad.");

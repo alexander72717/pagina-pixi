@@ -4,6 +4,7 @@ from pathlib import Path
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
+from board_profiles import BOARD_PROFILES, get_board_profile
 from compiler import build_sketch_bundle, detect_arduino_cli
 
 
@@ -54,6 +55,7 @@ def health_check():
                 "upload_supported": upload_supported(),
                 "compile_supported": compile_supported(),
                 "service_role": "compiler-and-web" if not is_cloud_runtime() else "web",
+                "boards": BOARD_PROFILES,
             }
         )
     except Exception as exc:
@@ -82,7 +84,8 @@ def generate_sketch():
         cpp_code = payload.get("cpp_code", "").strip()
         board = payload.get("board", "esp32-s3-zero")
         project_name = payload.get("project_name", "robot_program")
-        fqbn = payload.get("fqbn", "esp32:esp32:esp32s3")
+        profile = get_board_profile(board)
+        fqbn = payload.get("fqbn", profile["fqbn"])
         port = payload.get("port")
         upload = bool(payload.get("upload", False))
 

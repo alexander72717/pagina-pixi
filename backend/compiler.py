@@ -5,6 +5,8 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
+from board_profiles import get_board_profile
+
 
 def _sanitize_name(name: str) -> str:
     safe = "".join(char if char.isalnum() or char in ("-", "_") else "_" for char in name)
@@ -74,6 +76,7 @@ def build_sketch_bundle(
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     sketch_dir = generated_dir / f"{safe_name}_{timestamp}"
     sketch_dir.mkdir(parents=True, exist_ok=True)
+    profile = get_board_profile(board)
 
     template = _load_template(generated_dir)
     sketch_code = template.replace("// USER_LOGIC_PLACEHOLDER", cpp_code)
@@ -88,12 +91,14 @@ def build_sketch_bundle(
 
     hal_source = generated_dir.parent.parent / "firmware" / "include" / "RobotHAL.h"
     shutil.copy2(hal_source, include_dir / "RobotHAL.h")
+    config_path = include_dir / "BoardConfig.h"
 
     ino_path.write_text(sketch_code, encoding="utf-8")
     workspace_path.write_text(
         json.dumps(workspace_json or {}, indent=2, ensure_ascii=True),
         encoding="utf-8",
     )
+    config_path.write_text(_build_board_config_header(profile), encoding="utf-8")
 
     compile_result = _run_command(
         _arduino_cli_command(
@@ -111,6 +116,7 @@ def build_sketch_bundle(
         "status": "ok" if compile_result["returncode"] == 0 else "error",
         "message": "Sketch compilado correctamente." if compile_result["returncode"] == 0 else "La compilacion fallo.",
         "board": board,
+        "board_profile": profile,
         "project_name": safe_name,
         "fqbn": fqbn,
         "port": port,
@@ -143,3 +149,33 @@ def build_sketch_bundle(
         )
 
     return response
+
+
+def _build_board_config_header(profile: dict) -> str:
+    led = profile.get("led", {})
+    lines = [
+        "#pragma once",
+        "",
+        f'#define PIXI_BOARD_LABEL "{profile.get("label", "Unknown Board")}"',
+    ]
+
+    if led.get("type") == "rgb":
+        lines.extend(
+            [
+                "#define PIXI_LED_MODE_RGB 1",
+                f"#define PIXI_LED_PIN {int(led.get('pin', 21))}",
+                f"#define PIXI_LED_ORDER_{led.get('order', 'RGB')} 1",
+            ]
+        )
+    else:
+        active_high = 1 if led.get("active_high", True) else 0
+        lines.extend(
+            [
+                "#define PIXI_LED_MODE_DIGITAL 1",
+                f"#define PIXI_LED_PIN {int(led.get('pin', 8))}",
+                f"#define PIXI_LED_ACTIVE_HIGH {active_high}",
+            ]
+        )
+
+    lines.append("")
+    return "\n".join(lines)

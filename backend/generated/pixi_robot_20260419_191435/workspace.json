@@ -1,0 +1,30 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "controls_repeat_ext",
+        "id": "isjvbC;wHdKg^NL8xJ[r",
+        "x": 116,
+        "y": 20,
+        "inputs": {
+          "TIMES": {
+            "block": {
+              "type": "math_number",
+              "id": "S{#^R9PSG40oWnWEugOl",
+              "fields": {
+                "NUM": 1
+              }
+            }
+          },
+          "DO": {
+            "block": {
+              "type": "robot_led_blue",
+              "id": ",98W;{CTzFZ|=WNHZKj^"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

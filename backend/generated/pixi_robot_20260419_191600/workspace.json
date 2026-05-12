@@ -1,0 +1,101 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "controls_repeat_ext",
+        "id": "isjvbC;wHdKg^NL8xJ[r",
+        "x": 97,
+        "y": 22,
+        "inputs": {
+          "TIMES": {
+            "block": {
+              "type": "math_number",
+              "id": "S{#^R9PSG40oWnWEugOl",
+              "fields": {
+                "NUM": 1
+              }
+            }
+          },
+          "DO": {
+            "block": {
+              "type": "robot_led_blue",
+              "id": ",98W;{CTzFZ|=WNHZKj^",
+              "next": {
+                "block": {
+                  "type": "robot_wait_ms",
+                  "id": "b3~ic=+pG?sg$fg;MxVO",
+                  "fields": {
+                    "TIME_MS": 1000
+                  },
+                  "next": {
+                    "block": {
+                      "type": "robot_led_red",
+                      "id": "MN}t-![?)XO!^VB4Po$N",
+                      "next": {
+                        "block": {
+                          "type": "robot_wait_ms",
+                          "id": "2C$Vl|EQ%Na9:`Nc^ns.",
+                          "fields": {
+                            "TIME_MS": 1000
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "controls_repeat_ext",
+        "id": "al[HTnT=8geQhiV8inD(",
+        "x": 369,
+        "y": 24,
+        "inputs": {
+          "TIMES": {
+            "block": {
+              "type": "math_number",
+              "id": "W.urTe+gD2JeS2[V-Ag.",
+              "fields": {
+                "NUM": 1
+              }
+            }
+          },
+          "DO": {
+            "block": {
+              "type": "robot_led_green",
+              "id": "JX7MVUnz#[t#I[i2/cBx",
+              "next": {
+                "block": {
+                  "type": "robot_wait_ms",
+                  "id": "iqcUy545#=g)Ju$[_TB_",
+                  "fields": {
+                    "TIME_MS": 1000
+                  },
+                  "next": {
+                    "block": {
+                      "type": "robot_led_white",
+                      "id": "?;F;:gXK;^fQa;kIG6i|",
+                      "next": {
+                        "block": {
+                          "type": "robot_wait_ms",
+                          "id": "D]=gE_m{?RTOPbn$R`$w",
+                          "fields": {
+                            "TIME_MS": 1000
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

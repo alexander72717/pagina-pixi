@@ -2,9 +2,22 @@
 
 #include <Arduino.h>
 #include "esp32-hal-rgb-led.h"
+#include "BoardConfig.h"
 
-static const uint8_t PIXI_ONBOARD_RGB_PIN = 21;
-static const rgb_led_color_order_t PIXI_ONBOARD_RGB_ORDER = LED_COLOR_ORDER_RGB;
+static const rgb_led_color_order_t PIXI_ONBOARD_RGB_ORDER =
+#if defined(PIXI_LED_ORDER_GRB)
+    LED_COLOR_ORDER_GRB;
+#elif defined(PIXI_LED_ORDER_BRG)
+    LED_COLOR_ORDER_BRG;
+#elif defined(PIXI_LED_ORDER_RBG)
+    LED_COLOR_ORDER_RBG;
+#elif defined(PIXI_LED_ORDER_GBR)
+    LED_COLOR_ORDER_GBR;
+#elif defined(PIXI_LED_ORDER_BGR)
+    LED_COLOR_ORDER_BGR;
+#else
+    LED_COLOR_ORDER_RGB;
+#endif
 
 class RobotHAL {
  public:
@@ -33,28 +46,23 @@ class RobotHAL {
   }
 
   void encenderLed() {
-    rgbLedWriteOrdered(PIXI_ONBOARD_RGB_PIN, PIXI_ONBOARD_RGB_ORDER, 255, 0, 0);
-    Serial.println("LED RGB encendido en rojo");
+    setLedColor(255, 0, 0, "LED encendido en rojo");
   }
 
   void apagarLed() {
-    rgbLedWriteOrdered(PIXI_ONBOARD_RGB_PIN, PIXI_ONBOARD_RGB_ORDER, 0, 0, 0);
-    Serial.println("LED RGB apagado");
+    setLedColor(0, 0, 0, "LED apagado");
   }
 
   void encenderLedVerde() {
-    rgbLedWriteOrdered(PIXI_ONBOARD_RGB_PIN, PIXI_ONBOARD_RGB_ORDER, 0, 255, 0);
-    Serial.println("LED RGB encendido en verde");
+    setLedColor(0, 255, 0, "LED encendido en verde");
   }
 
   void encenderLedAzul() {
-    rgbLedWriteOrdered(PIXI_ONBOARD_RGB_PIN, PIXI_ONBOARD_RGB_ORDER, 0, 0, 255);
-    Serial.println("LED RGB encendido en azul");
+    setLedColor(0, 0, 255, "LED encendido en azul");
   }
 
   void encenderLedBlanco() {
-    rgbLedWriteOrdered(PIXI_ONBOARD_RGB_PIN, PIXI_ONBOARD_RGB_ORDER, 255, 255, 255);
-    Serial.println("LED RGB encendido en blanco");
+    setLedColor(255, 255, 255, "LED encendido en blanco");
   }
 
   void encenderLedDigitalCompat() {
@@ -68,5 +76,22 @@ class RobotHAL {
 
   void esperar(int milisegundos) {
     delay(milisegundos);
+  }
+
+ private:
+  void setLedColor(uint8_t red, uint8_t green, uint8_t blue, const char *message) {
+#if defined(PIXI_LED_MODE_RGB)
+    rgbLedWriteOrdered(PIXI_LED_PIN, PIXI_ONBOARD_RGB_ORDER, red, green, blue);
+    Serial.println(message);
+#elif defined(PIXI_LED_MODE_DIGITAL)
+    bool ledOn = red > 0 || green > 0 || blue > 0;
+    int activeValue = PIXI_LED_ACTIVE_HIGH ? HIGH : LOW;
+    int inactiveValue = PIXI_LED_ACTIVE_HIGH ? LOW : HIGH;
+    pinMode(PIXI_LED_PIN, OUTPUT);
+    digitalWrite(PIXI_LED_PIN, ledOn ? activeValue : inactiveValue);
+    Serial.println(message);
+#else
+    Serial.println("No hay configuracion de LED para esta placa");
+#endif
   }
 };

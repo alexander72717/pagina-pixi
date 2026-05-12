@@ -1,0 +1,54 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "controls_repeat_ext",
+        "id": ":iGbpCZ?w~5[7F,n68dl",
+        "x": 90,
+        "y": 68,
+        "inputs": {
+          "TIMES": {
+            "block": {
+              "type": "math_number",
+              "id": "!-OsVJZpOUyW0vq{9$j(",
+              "fields": {
+                "NUM": 10
+              }
+            }
+          },
+          "DO": {
+            "block": {
+              "type": "robot_led_red",
+              "id": ")/U50j|0%2#AqLYJ8dME",
+              "next": {
+                "block": {
+                  "type": "robot_wait_ms",
+                  "id": "1o^~-p-s?!KB8#Zo4[f-",
+                  "fields": {
+                    "TIME_MS": 500
+                  },
+                  "next": {
+                    "block": {
+                      "type": "robot_led_blue",
+                      "id": "0jY;]WvCUwwvY#8bhzXr",
+                      "next": {
+                        "block": {
+                          "type": "robot_wait_ms",
+                          "id": "#35c;|A@r%fko4l-cc)w",
+                          "fields": {
+                            "TIME_MS": 500
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}
