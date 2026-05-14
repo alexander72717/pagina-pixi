@@ -1,6 +1,7 @@
 const isFrontendDevServer = window.location.hostname === "127.0.0.1" && window.location.port === "5500";
 const BACKEND_URL = isFrontendDevServer ? "http://127.0.0.1:5000" : window.location.origin;
-const DEFAULT_COMPILER_URL = "http://127.0.0.1:5000";
+const DEFAULT_COMPILER_URL =
+  window.location.protocol === "https:" ? "https://127.0.0.1:5443" : "http://127.0.0.1:5000";
 const DEFAULT_PROJECT_NAME = "mi_proyecto";
 
 function defineRobotBlocks() {
@@ -226,7 +227,13 @@ const progressBarEl = document.getElementById("progress-bar");
 const progressMessageEl = document.getElementById("progress-message");
 
 const savedCompilerUrl = window.localStorage.getItem("pixi_compiler_url");
-compilerUrlInput.value = savedCompilerUrl || DEFAULT_COMPILER_URL;
+const migratedCompilerUrl =
+  window.location.protocol === "https:" &&
+  (!savedCompilerUrl || savedCompilerUrl === "http://127.0.0.1:5000" || savedCompilerUrl === "http://localhost:5000")
+    ? "https://127.0.0.1:5443"
+    : savedCompilerUrl || DEFAULT_COMPILER_URL;
+compilerUrlInput.value = migratedCompilerUrl;
+window.localStorage.setItem("pixi_compiler_url", migratedCompilerUrl);
 projectNameInput.value = window.localStorage.getItem("pixi_project_name") || DEFAULT_PROJECT_NAME;
 
 let progressValue = 0;
@@ -258,6 +265,8 @@ function isInsecureCompilerEndpointFromSecurePage() {
 }
 
 function getCompilerEndpointErrorMessage() {
+  const endpoint = getCompilerUrl();
+
   if (isInsecureCompilerEndpointFromSecurePage()) {
     return [
       "No se puede conectar al compiler endpoint desde esta pagina online.",
@@ -266,16 +275,17 @@ function getCompilerEndpointErrorMessage() {
       "la web esta cargada por HTTPS en Render, pero el compiler endpoint local usa HTTP.",
       "",
       "Que puedes hacer ahora:",
-      "1. Usa la version local de la web en http://127.0.0.1:5500 para compilar.",
-      "2. O prepara mas adelante un compiler service local con HTTPS.",
+      "1. Arranca el compiler service local en HTTPS.",
+      "2. Luego abre https://127.0.0.1:5443/api/health y acepta el certificado local una vez.",
+      "3. Despues vuelve a esta pagina y prueba otra vez.",
     ].join("\n");
   }
 
   return [
-    "No se pudo conectar al compiler endpoint.",
+    `No se pudo conectar al compiler endpoint: ${endpoint}`,
     "",
     "Revisa que el compilador local este corriendo en tu PC:",
-    "http://127.0.0.1:5000/api/health",
+    `${endpoint}/api/health`,
   ].join("\n");
 }
 
@@ -416,8 +426,12 @@ async function checkBackend() {
         ? " Esta instancia publica sirve la interfaz."
         : " Esta instancia puede servir como compilador local.";
     backendStatusEl.textContent = `${data.status}: ${data.message}${cliMessage}${runtimeMessage}${roleMessage}`;
-    if (data.boards) {
+  if (data.boards) {
       setBoardOptions(data.boards);
+    }
+    if (data.recommended_compiler_endpoint && !isFrontendDevServer) {
+      compilerUrlInput.value = data.recommended_compiler_endpoint;
+      persistCompilerUrl();
     }
   } catch (error) {
     backendStatusEl.textContent = `No se pudo conectar al backend: ${error.message}`;
@@ -446,8 +460,9 @@ async function checkCompiler() {
     const uploadMessage = data.upload_supported
       ? " Subida USB disponible."
       : " Subida USB no disponible.";
+    const httpsMessage = data.https_enabled ? " HTTPS local activo." : "";
     backendResponseEl.textContent = JSON.stringify(data, null, 2);
-    serialStatusEl.textContent = `${data.status}: compiler endpoint conectado.${compileMessage}${uploadMessage}`;
+    serialStatusEl.textContent = `${data.status}: compiler endpoint conectado.${compileMessage}${uploadMessage}${httpsMessage}`;
     uploadButton.dataset.allowed = data.upload_supported ? "true" : "false";
     uploadButton.disabled = !data.upload_supported;
     uploadButton.title = data.upload_supported

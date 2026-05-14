@@ -14,10 +14,51 @@ GENERATED_DIR.mkdir(exist_ok=True)
 FRONTEND_DIR = BASE_DIR.parent / "frontend"
 
 app = Flask(__name__, static_folder=str(FRONTEND_DIR), static_url_path="")
-CORS(app)
+
+
+def local_https_enabled():
+    return os.getenv("PIXI_USE_HTTPS", "false").lower() in {"1", "true", "yes", "on"}
+
+
+def force_local_runtime():
+    return os.getenv("PIXI_FORCE_LOCAL", "false").lower() in {"1", "true", "yes", "on"}
+
+
+def get_runtime_mode():
+    return "cloud" if is_cloud_runtime() else "local"
+
+
+def get_allowed_origins():
+    env_origins = os.getenv("PIXI_ALLOWED_ORIGINS", "").strip()
+    if env_origins:
+      return [origin.strip() for origin in env_origins.split(",") if origin.strip()]
+
+    return [
+        "http://127.0.0.1:5500",
+        "http://localhost:5500",
+        "https://pixi-blocks-lab.onrender.com",
+    ]
+
+
+def get_local_compiler_endpoint():
+    scheme = "https" if local_https_enabled() else "http"
+    default_port = "5443" if local_https_enabled() else "5000"
+    port = os.getenv("PORT", default_port)
+    host = os.getenv("PIXI_LOCAL_HOST", "127.0.0.1")
+    return f"{scheme}://{host}:{port}"
+
+
+CORS(app, resources={r"/api/*": {"origins": get_allowed_origins()}})
 
 
 def is_cloud_runtime():
+    if force_local_runtime():
+        return False
+
+    runtime_override = os.getenv("PIXI_RUNTIME_MODE", "").strip().lower()
+    if runtime_override in {"local", "cloud"}:
+        return runtime_override == "cloud"
+
     return os.getenv("RENDER", "").lower() == "true"
 
 
@@ -51,11 +92,13 @@ def health_check():
                 "status": "ok",
                 "message": "Backend listo para el flujo de compilacion de placas ESP32.",
                 "arduino_cli": cli_info,
-                "runtime_mode": "cloud" if is_cloud_runtime() else "local",
+                "runtime_mode": get_runtime_mode(),
                 "upload_supported": upload_supported(),
                 "compile_supported": compile_supported(),
                 "service_role": "compiler-and-web" if not is_cloud_runtime() else "web",
                 "boards": BOARD_PROFILES,
+                "recommended_compiler_endpoint": None if is_cloud_runtime() else get_local_compiler_endpoint(),
+                "https_enabled": local_https_enabled() if not is_cloud_runtime() else False,
             }
         )
     except Exception as exc:
@@ -66,7 +109,7 @@ def health_check():
                     "message": "El endpoint de salud fallo dentro del servidor.",
                     "error_type": type(exc).__name__,
                     "error_detail": str(exc),
-                    "runtime_mode": "cloud" if is_cloud_runtime() else "local",
+                    "runtime_mode": get_runtime_mode(),
                     "upload_supported": upload_supported(),
                     "compile_supported": compile_supported(),
                 }
@@ -158,5 +201,7 @@ def generate_sketch():
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "5000"))
-    app.run(debug=False, host="0.0.0.0", port=port)
+    port = int(os.getenv("PORT", "5443" if local_https_enabled() else "5000"))
+    host = os.getenv("HOST", "0.0.0.0")
+    ssl_context = "adhoc" if local_https_enabled() else None
+    app.run(debug=False, host=host, port=port, ssl_context=ssl_context)

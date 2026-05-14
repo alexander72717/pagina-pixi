@@ -163,6 +163,14 @@ http://127.0.0.1:5000
 
 Eso apunta al compilador que corre en tu propio PC.
 
+Si la web se abre desde `Render`, el camino mas prometedor para que el navegador permita la conexion es usar el compiler service local en `HTTPS`.
+
+La direccion esperada para esa fase es:
+
+```text
+https://127.0.0.1:5443
+```
+
 ## Como usar la plataforma hoy
 
 ### Opcion 1: Uso local completo
@@ -221,13 +229,44 @@ Si todo sale bien, el compiler service queda disponible en:
 http://127.0.0.1:5000
 ```
 
+## Como iniciar el compilador local en HTTPS
+
+Para avanzar en la comunicacion entre la web publica y tu PC, ya dejamos una forma inicial de arrancar el compilador local con `HTTPS`.
+
+Abre una terminal en:
+
+[`backend`](C:\Users\samue\Desktop\Spixers\codigo\pagina pixi\backend)
+
+Y ejecuta:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\start_compiler_https.ps1
+```
+
+Eso levanta el compiler service en:
+
+```text
+https://127.0.0.1:5443
+```
+
+La primera vez, el navegador puede advertir que el certificado es local o no confiable. En esta fase eso es esperado.
+
+Haz esta prueba:
+
+1. abre `https://127.0.0.1:5443/api/health`
+2. acepta el certificado local si el navegador lo pide
+3. despues vuelve a la web de `Render`
+4. deja el `compiler endpoint` en `https://127.0.0.1:5443`
+5. pulsa `Probar compilador`
+
 ## Como usar la web publicada
 
 1. abre la URL publica de tu proyecto en `Render`
 2. en el campo `compiler endpoint` deja:
 
 ```text
-http://127.0.0.1:5000
+https://127.0.0.1:5443
 ```
 
 3. pulsa `Probar compilador`
