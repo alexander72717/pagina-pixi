@@ -1,0 +1,60 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "controls_repeat_ext",
+        "id": "4JQ:kJ^QMoZXQIq`/o#_",
+        "x": 280,
+        "y": 50,
+        "inputs": {
+          "TIMES": {
+            "block": {
+              "type": "math_number",
+              "id": "HC)=a{d[MGdlQ#@qlPAZ",
+              "fields": {
+                "NUM": 0
+              }
+            }
+          },
+          "DO": {
+            "block": {
+              "type": "robot_led_blue",
+              "id": ";y(s|vc83)(WwPB@9~?B",
+              "next": {
+                "block": {
+                  "type": "robot_wait_ms",
+                  "id": "s!1c2H-#i*/)sj4@(OZd",
+                  "fields": {
+                    "TIME_MS": 500
+                  },
+                  "next": {
+                    "block": {
+                      "type": "robot_led_green",
+                      "id": "V9~2PX0h;].rKrVb18]R",
+                      "next": {
+                        "block": {
+                          "type": "robot_wait_ms",
+                          "id": "Q|h6.:bDPb^MbG8a/0m[",
+                          "fields": {
+                            "TIME_MS": 500
+                          },
+                          "next": {
+                            "block": {
+                              "type": "robot_led_red",
+                              "id": "RGytX8b:4tYg_4X*F.,@"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

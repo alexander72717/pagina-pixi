@@ -168,7 +168,7 @@ Si la web se abre desde `Render`, el camino mas prometedor para que el navegador
 La direccion esperada para esa fase es:
 
 ```text
-https://127.0.0.1:5443
+https://localhost:5443
 ```
 
 ## Como usar la plataforma hoy
@@ -247,17 +247,17 @@ Y ejecuta:
 Eso levanta el compiler service en:
 
 ```text
-https://127.0.0.1:5443
+https://localhost:5443
 ```
 
 La primera vez, el navegador puede advertir que el certificado es local o no confiable. En esta fase eso es esperado.
 
 Haz esta prueba:
 
-1. abre `https://127.0.0.1:5443/api/health`
+1. abre `https://localhost:5443/api/health`
 2. acepta el certificado local si el navegador lo pide
 3. despues vuelve a la web de `Render`
-4. deja el `compiler endpoint` en `https://127.0.0.1:5443`
+4. deja el `compiler endpoint` en `https://localhost:5443`
 5. pulsa `Probar compilador`
 
 ## Como usar la web publicada
@@ -266,7 +266,7 @@ Haz esta prueba:
 2. en el campo `compiler endpoint` deja:
 
 ```text
-https://127.0.0.1:5443
+https://localhost:5443
 ```
 
 3. pulsa `Probar compilador`

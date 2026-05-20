@@ -1,7 +1,7 @@
 const isFrontendDevServer = window.location.hostname === "127.0.0.1" && window.location.port === "5500";
 const BACKEND_URL = isFrontendDevServer ? "http://127.0.0.1:5000" : window.location.origin;
 const DEFAULT_COMPILER_URL =
-  window.location.protocol === "https:" ? "https://127.0.0.1:5443" : "http://127.0.0.1:5000";
+  window.location.protocol === "https:" ? "https://localhost:5443" : "http://127.0.0.1:5000";
 const DEFAULT_PROJECT_NAME = "mi_proyecto";
 
 function defineRobotBlocks() {
@@ -50,6 +50,26 @@ function defineRobotBlocks() {
       message0: "leer distancia en cm",
       output: "Number",
       colour: 24,
+    },
+    {
+      type: "robot_led_set_color",
+      message0: "poner LED en color %1",
+      args0: [
+        {
+          type: "field_dropdown",
+          name: "COLOR",
+          options: [
+            ["rojo", "RED"],
+            ["verde", "GREEN"],
+            ["azul", "BLUE"],
+            ["blanco", "WHITE"],
+            ["apagado", "OFF"],
+          ],
+        },
+      ],
+      previousStatement: null,
+      nextStatement: null,
+      colour: 45,
     },
     {
       type: "robot_led_red",
@@ -144,6 +164,19 @@ function createCppGenerator() {
 
   generator.forBlock.robot_led_red = function () {
     return "robot.encenderLed();\n";
+  };
+
+  generator.forBlock.robot_led_set_color = function (block) {
+    const color = block.getFieldValue("COLOR");
+    const colorMap = {
+      RED: "robot.encenderLed();\n",
+      GREEN: "robot.encenderLedVerde();\n",
+      BLUE: "robot.encenderLedAzul();\n",
+      WHITE: "robot.encenderLedBlanco();\n",
+      OFF: "robot.apagarLed();\n",
+    };
+
+    return colorMap[color] || "robot.apagarLed();\n";
   };
 
   generator.forBlock.robot_led_green = function () {
@@ -276,7 +309,7 @@ function getCompilerEndpointErrorMessage() {
       "",
       "Que puedes hacer ahora:",
       "1. Arranca el compiler service local en HTTPS.",
-      "2. Luego abre https://127.0.0.1:5443/api/health y acepta el certificado local una vez.",
+      "2. Luego abre https://localhost:5443/api/health y acepta el certificado local una vez.",
       "3. Despues vuelve a esta pagina y prueba otra vez.",
     ].join("\n");
   }

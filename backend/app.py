@@ -44,11 +44,16 @@ def get_local_compiler_endpoint():
     scheme = "https" if local_https_enabled() else "http"
     default_port = "5443" if local_https_enabled() else "5000"
     port = os.getenv("PORT", default_port)
-    host = os.getenv("PIXI_LOCAL_HOST", "127.0.0.1")
+    default_host = "localhost" if local_https_enabled() else "127.0.0.1"
+    host = os.getenv("PIXI_LOCAL_HOST", default_host)
     return f"{scheme}://{host}:{port}"
 
 
-CORS(app, resources={r"/api/*": {"origins": get_allowed_origins()}})
+CORS(
+    app,
+    resources={r"/api/*": {"origins": get_allowed_origins()}},
+    allow_private_network=True,
+)
 
 
 def is_cloud_runtime():
@@ -68,6 +73,17 @@ def upload_supported():
 
 def compile_supported():
     return not is_cloud_runtime()
+
+
+@app.after_request
+def add_private_network_headers(response):
+    if request.path.startswith("/api/"):
+        response.headers["Access-Control-Allow-Private-Network"] = "true"
+        response.headers["Access-Control-Allow-Headers"] = (
+            "Content-Type, Authorization, Access-Control-Request-Private-Network"
+        )
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    return response
 
 
 @app.get("/")
