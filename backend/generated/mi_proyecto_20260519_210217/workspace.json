@@ -1,0 +1,60 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "controls_repeat_ext",
+        "id": "`RJoBU5MyXKQ}DHR2Y%f",
+        "x": 137,
+        "y": 41,
+        "inputs": {
+          "TIMES": {
+            "block": {
+              "type": "math_number",
+              "id": "U^gzY4@=p:1wDnO-lK+h",
+              "fields": {
+                "NUM": 10
+              }
+            }
+          },
+          "DO": {
+            "block": {
+              "type": "robot_led_set_color",
+              "id": "Ob=VD9~EOqF~/%d|RVaa",
+              "fields": {
+                "COLOR": "WHITE"
+              },
+              "next": {
+                "block": {
+                  "type": "robot_wait_ms",
+                  "id": "7GD15~!x+n^Hs_zx;y=o",
+                  "fields": {
+                    "TIME_MS": 3000
+                  },
+                  "next": {
+                    "block": {
+                      "type": "robot_led_set_color",
+                      "id": "aP~^Fl860NabgTX2u[o)",
+                      "fields": {
+                        "COLOR": "GREEN"
+                      },
+                      "next": {
+                        "block": {
+                          "type": "robot_wait_ms",
+                          "id": "~dE@L4G{lfl:a}Zb{8Hb",
+                          "fields": {
+                            "TIME_MS": 500
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

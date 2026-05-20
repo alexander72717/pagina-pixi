@@ -1,4 +1,5 @@
 import os
+import socket
 from pathlib import Path
 
 from flask import Flask, jsonify, request, send_from_directory
@@ -49,6 +50,57 @@ def get_local_compiler_endpoint():
     return f"{scheme}://{host}:{port}"
 
 
+def get_lan_candidates():
+    candidates = []
+
+    try:
+        hostname = socket.gethostname()
+        for info in socket.getaddrinfo(hostname, None, family=socket.AF_INET):
+            ip = info[4][0]
+            if ip.startswith(("127.", "169.254.")):
+                continue
+            if ip not in candidates:
+                candidates.append(ip)
+    except OSError:
+        pass
+
+    return candidates
+
+
+def get_hostname_candidates():
+    candidates = []
+
+    computer_name = os.getenv("COMPUTERNAME", "").strip()
+    hostname = socket.gethostname().strip()
+
+    for name in (computer_name, hostname):
+        if name and name.lower() != "localhost" and name not in candidates:
+            candidates.append(name)
+
+    return candidates
+
+
+def get_recommended_compiler_endpoints():
+    if is_cloud_runtime():
+        return []
+
+    scheme = "https" if local_https_enabled() else "http"
+    port = os.getenv("PORT", "5443" if local_https_enabled() else "5000")
+    endpoints = [get_local_compiler_endpoint()]
+
+    for hostname in get_hostname_candidates():
+        endpoint = f"{scheme}://{hostname}:{port}"
+        if endpoint not in endpoints:
+            endpoints.append(endpoint)
+
+    for ip in get_lan_candidates():
+        endpoint = f"{scheme}://{ip}:{port}"
+        if endpoint not in endpoints:
+            endpoints.append(endpoint)
+
+    return endpoints
+
+
 CORS(
     app,
     resources={r"/api/*": {"origins": get_allowed_origins()}},
@@ -73,6 +125,51 @@ def upload_supported():
 
 def compile_supported():
     return not is_cloud_runtime()
+
+
+def detect_connected_boards():
+    try:
+        completed = _run_command(_arduino_cli_command("board", "list", "--json"))
+        if completed["returncode"] != 0:
+            return {
+                "status": "error",
+                "message": "No se pudo consultar la lista de placas conectadas.",
+                "board_list_result": completed,
+                "ports": [],
+            }
+
+        payload = json.loads(completed["stdout"] or "{}")
+        ports = []
+
+        for item in payload.get("detected_ports", []):
+            matching_boards = item.get("matching_boards", [])
+            selected_board = matching_boards[0] if matching_boards else {}
+            ports.append(
+                {
+                    "address": item.get("port", {}).get("address") or item.get("address"),
+                    "label": item.get("port", {}).get("label") or item.get("label"),
+                    "protocol": item.get("port", {}).get("protocol") or item.get("protocol"),
+                    "properties": item.get("port", {}).get("properties", {}),
+                    "board_name": selected_board.get("name"),
+                    "fqbn": selected_board.get("fqbn"),
+                    "matching_boards": matching_boards,
+                }
+            )
+
+        return {
+            "status": "ok",
+            "message": "Puertos detectados correctamente.",
+            "ports": ports,
+            "board_list_result": completed,
+        }
+    except Exception as exc:
+        return {
+            "status": "error",
+            "message": "El servicio no pudo detectar puertos del sistema.",
+            "error_type": type(exc).__name__,
+            "error_detail": str(exc),
+            "ports": [],
+        }
 
 
 @app.after_request
@@ -115,6 +212,10 @@ def health_check():
                 "boards": BOARD_PROFILES,
                 "recommended_compiler_endpoint": None if is_cloud_runtime() else get_local_compiler_endpoint(),
                 "https_enabled": local_https_enabled() if not is_cloud_runtime() else False,
+                "lan_candidates": [] if is_cloud_runtime() else get_lan_candidates(),
+                "hostname_candidates": [] if is_cloud_runtime() else get_hostname_candidates(),
+                "recommended_lan_compiler_endpoints": [] if is_cloud_runtime() else get_recommended_compiler_endpoints(),
+                "detected_ports": [] if is_cloud_runtime() else detect_connected_boards().get("ports", []),
             }
         )
     except Exception as exc:
@@ -214,6 +315,25 @@ def generate_sketch():
             ),
             500,
         )
+
+
+@app.get("/api/ports")
+def list_ports():
+    if not compile_supported():
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Esta instancia publica no puede consultar puertos de hardware.",
+                    "ports": [],
+                    "runtime_mode": get_runtime_mode(),
+                }
+            ),
+            400,
+        )
+
+    result = detect_connected_boards()
+    return jsonify(result), (200 if result.get("status") == "ok" else 500)
 
 
 if __name__ == "__main__":

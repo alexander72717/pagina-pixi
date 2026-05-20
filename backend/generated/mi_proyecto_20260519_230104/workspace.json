@@ -1,0 +1,78 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "controls_repeat_ext",
+        "id": "nO=uS;LN3`6.?8~-Mp16",
+        "x": 197,
+        "y": 33,
+        "inputs": {
+          "TIMES": {
+            "block": {
+              "type": "math_number",
+              "id": "6%A!{^FX2#;6Ri=]1oSu",
+              "fields": {
+                "NUM": 10
+              }
+            }
+          },
+          "DO": {
+            "block": {
+              "type": "robot_led_set_color",
+              "id": "~bSgefb3b!Pb9_p$mTtM",
+              "fields": {
+                "COLOR": "RED"
+              },
+              "next": {
+                "block": {
+                  "type": "robot_wait_ms",
+                  "id": "FwNQ@#@-TekIwC@a9mrl",
+                  "fields": {
+                    "TIME_MS": 500
+                  },
+                  "next": {
+                    "block": {
+                      "type": "robot_led_set_color",
+                      "id": "A8=ln~|fNc#tPs(k:g/m",
+                      "fields": {
+                        "COLOR": "GREEN"
+                      },
+                      "next": {
+                        "block": {
+                          "type": "robot_wait_ms",
+                          "id": "O9emA!COc04iH%]Q$3qE",
+                          "fields": {
+                            "TIME_MS": 500
+                          },
+                          "next": {
+                            "block": {
+                              "type": "robot_led_set_color",
+                              "id": "Ul!osI#f#*1R{3cv]5wy",
+                              "fields": {
+                                "COLOR": "BLUE"
+                              },
+                              "next": {
+                                "block": {
+                                  "type": "robot_wait_ms",
+                                  "id": "a9WyJkZ8]rhm)mrK:mn]",
+                                  "fields": {
+                                    "TIME_MS": 500
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

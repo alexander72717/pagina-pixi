@@ -153,6 +153,10 @@ def build_sketch_bundle(
 
 def _build_board_config_header(profile: dict) -> str:
     led = profile.get("led", {})
+    robot = profile.get("robot", {})
+    motors = robot.get("motors", {})
+    i2c = robot.get("i2c", {})
+    oled = robot.get("oled", {})
     lines = [
         "#pragma once",
         "",
@@ -176,6 +180,23 @@ def _build_board_config_header(profile: dict) -> str:
                 f"#define PIXI_LED_ACTIVE_HIGH {active_high}",
             ]
         )
+
+    lines.extend(
+        [
+            "",
+            f"#define PIXI_BUTTON_PIN {int(robot.get('button_pin', -1))}",
+            f"#define PIXI_MOTOR_LEFT_FORWARD_PIN {int(motors.get('left_forward', -1))}",
+            f"#define PIXI_MOTOR_LEFT_BACKWARD_PIN {int(motors.get('left_backward', -1))}",
+            f"#define PIXI_MOTOR_RIGHT_FORWARD_PIN {int(motors.get('right_forward', -1))}",
+            f"#define PIXI_MOTOR_RIGHT_BACKWARD_PIN {int(motors.get('right_backward', -1))}",
+            f"#define PIXI_I2C_SDA_PIN {int(i2c.get('sda', -1))}",
+            f"#define PIXI_I2C_SCL_PIN {int(i2c.get('scl', -1))}",
+            f"#define PIXI_OLED_ADDRESS {oled.get('address', '0x3C')}",
+            f"#define PIXI_OLED_WIDTH {int(oled.get('width', 128))}",
+            f"#define PIXI_OLED_HEIGHT {int(oled.get('height', 64))}",
+            f"#define PIXI_OLED_RESET_PIN {int(oled.get('reset', -1))}",
+        ]
+    )
 
     lines.append("")
     return "\n".join(lines)

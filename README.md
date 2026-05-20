@@ -260,6 +260,38 @@ Haz esta prueba:
 4. deja el `compiler endpoint` en `https://localhost:5443`
 5. pulsa `Probar compilador`
 
+## Como usar el compilador desde otro equipo de la misma red
+
+Si la web se abre en otro PC o tablet, `localhost` ya no apunta a tu computador principal.
+
+En ese caso necesitas usar la IP local de la maquina que corre el compilador.
+
+Dejamos un script para eso:
+
+```powershell
+.\start_compiler_lan_https.ps1
+```
+
+Ese script intenta detectar una IP local y te muestra un endpoint sugerido, por ejemplo:
+
+```text
+https://192.168.1.20:5443
+```
+
+Luego, desde el otro equipo:
+
+1. abre `https://192.168.1.20:5443/api/health`
+2. acepta la advertencia del certificado local si aparece
+3. abre la web publica de `Render`
+4. en `compiler endpoint` usa esa misma IP
+5. pulsa `Probar compilador`
+
+Importante:
+
+- ambos equipos deben estar en la misma red local
+- Windows puede pedir permiso de firewall la primera vez
+- si la IP cambia, debes actualizar el `compiler endpoint`
+
 ## Como usar la web publicada
 
 1. abre la URL publica de tu proyecto en `Render`

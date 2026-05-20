@@ -260,14 +260,16 @@ const progressBarEl = document.getElementById("progress-bar");
 const progressMessageEl = document.getElementById("progress-message");
 
 const savedCompilerUrl = window.localStorage.getItem("pixi_compiler_url");
+const savedPortsByBoard = JSON.parse(window.localStorage.getItem("pixi_ports_by_board") || "{}");
 const migratedCompilerUrl =
   window.location.protocol === "https:" &&
   (!savedCompilerUrl || savedCompilerUrl === "http://127.0.0.1:5000" || savedCompilerUrl === "http://localhost:5000")
-    ? "https://127.0.0.1:5443"
+    ? "https://localhost:5443"
     : savedCompilerUrl || DEFAULT_COMPILER_URL;
 compilerUrlInput.value = migratedCompilerUrl;
 window.localStorage.setItem("pixi_compiler_url", migratedCompilerUrl);
 projectNameInput.value = window.localStorage.getItem("pixi_project_name") || DEFAULT_PROJECT_NAME;
+let lastCompilerHealth = null;
 
 let progressValue = 0;
 let progressTimer = null;
@@ -291,6 +293,20 @@ function getCompilerUrl() {
 
 function persistCompilerUrl() {
   window.localStorage.setItem("pixi_compiler_url", getCompilerUrl());
+}
+
+function getSavedPortsByBoard() {
+  return JSON.parse(window.localStorage.getItem("pixi_ports_by_board") || "{}");
+}
+
+function savePortForBoard(boardId, port) {
+  if (!boardId || !port) {
+    return;
+  }
+
+  const portsByBoard = getSavedPortsByBoard();
+  portsByBoard[boardId] = port;
+  window.localStorage.setItem("pixi_ports_by_board", JSON.stringify(portsByBoard));
 }
 
 function isInsecureCompilerEndpointFromSecurePage() {
@@ -319,6 +335,10 @@ function getCompilerEndpointErrorMessage() {
     "",
     "Revisa que el compilador local este corriendo en tu PC:",
     `${endpoint}/api/health`,
+    "",
+    "Si estas usando otro dispositivo distinto al que corre el compilador:",
+    "no uses localhost ni 127.0.0.1.",
+    "Usa la IP local de la PC que corre el compilador, por ejemplo https://192.168.1.20:5443",
   ].join("\n");
 }
 
@@ -356,6 +376,11 @@ function updateBoardSelectionFromUI(boardsMap = null) {
   window.pixiBoards = boards;
   fqbnInput.value = profile.fqbn || fqbnInput.value;
   window.localStorage.setItem("pixi_board_id", boardSelect.value);
+
+  const portsByBoard = getSavedPortsByBoard();
+  if (portsByBoard[boardSelect.value]) {
+    portInput.value = portsByBoard[boardSelect.value];
+  }
 }
 
 function setProgress(value, message, title = "Proceso actual") {
@@ -487,6 +512,7 @@ async function checkCompiler() {
     const response = await fetch(`${getCompilerUrl()}/api/health`);
     const rawText = await response.text();
     const data = JSON.parse(rawText);
+    lastCompilerHealth = data;
     const compileMessage = data.compile_supported
       ? " Compilacion disponible."
       : " Esta instancia no compila.";
@@ -504,9 +530,44 @@ async function checkCompiler() {
     if (data.boards) {
       setBoardOptions(data.boards);
     }
+    await refreshDetectedPorts();
   } catch (error) {
     serialStatusEl.textContent = `No se pudo conectar al compiler endpoint: ${error.message}`;
     backendResponseEl.textContent = getCompilerEndpointErrorMessage();
+  }
+}
+
+async function refreshDetectedPorts() {
+  try {
+    const response = await fetch(`${getCompilerUrl()}/api/ports`);
+    const rawText = await response.text();
+    const data = JSON.parse(rawText);
+
+    if (!response.ok || data.status !== "ok") {
+      return;
+    }
+
+    const ports = data.ports || [];
+    if (!ports.length) {
+      return;
+    }
+
+    const currentBoard = boardSelect.value || "esp32-s3-zero";
+    const currentFqbn = fqbnInput.value.trim();
+    const savedPort = getSavedPortsByBoard()[currentBoard];
+
+    const preferredPort =
+      ports.find((port) => port.address === savedPort) ||
+      ports.find((port) => port.fqbn === currentFqbn) ||
+      ports[0];
+
+    if (preferredPort?.address) {
+      portInput.value = preferredPort.address;
+      savePortForBoard(currentBoard, preferredPort.address);
+      serialStatusEl.textContent = `${serialStatusEl.textContent} Puerto detectado: ${preferredPort.address}.`;
+    }
+  } catch (_error) {
+    // Si no se pueden consultar puertos, dejamos el valor manual actual.
   }
 }
 
@@ -590,7 +651,11 @@ uploadButton.addEventListener("click", () => sendSketch(true));
 document.getElementById("serial-btn").addEventListener("click", requestSerialPort);
 compilerUrlInput.addEventListener("change", persistCompilerUrl);
 projectNameInput.addEventListener("change", normalizeProjectName);
-boardSelect.addEventListener("change", () => updateBoardSelectionFromUI());
+boardSelect.addEventListener("change", async () => {
+  updateBoardSelectionFromUI();
+  await refreshDetectedPorts();
+});
+portInput.addEventListener("change", () => savePortForBoard(boardSelect.value, portInput.value.trim()));
 saveProjectButton.addEventListener("click", saveProjectToBrowser);
 loadProjectButton.addEventListener("click", loadProjectFromBrowser);
 
