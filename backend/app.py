@@ -1,5 +1,7 @@
+import json
 import os
 import socket
+import subprocess
 from pathlib import Path
 
 from flask import Flask, jsonify, request, send_from_directory
@@ -127,6 +129,30 @@ def compile_supported():
     return not is_cloud_runtime()
 
 
+def _arduino_cli_command(*parts):
+    config_file = os.getenv("ARDUINO_CONFIG_FILE", "").strip()
+    command = ["arduino-cli"]
+    if config_file:
+        command.extend(["--config-file", config_file])
+    command.extend(parts)
+    return command
+
+
+def _run_command(command):
+    completed = subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return {
+        "command": command,
+        "returncode": completed.returncode,
+        "stdout": completed.stdout,
+        "stderr": completed.stderr,
+    }
+
+
 def detect_connected_boards():
     try:
         completed = _run_command(_arduino_cli_command("board", "list", "--json"))
@@ -170,6 +196,41 @@ def detect_connected_boards():
             "error_detail": str(exc),
             "ports": [],
         }
+
+
+def resolve_upload_port(board: str, fqbn: str, requested_port: str | None):
+    detection = detect_connected_boards()
+    ports = detection.get("ports", [])
+
+    if requested_port and any(port.get("address") == requested_port for port in ports):
+        return {
+            "selected_port": requested_port,
+            "resolution": "requested_port_confirmed",
+            "ports": ports,
+        }
+
+    profile = get_board_profile(board)
+    target_fqbn = fqbn or profile.get("fqbn")
+    matching_port = next((port for port in ports if port.get("fqbn") == target_fqbn), None)
+    if matching_port and matching_port.get("address"):
+        return {
+            "selected_port": matching_port["address"],
+            "resolution": "auto_detected_from_board",
+            "ports": ports,
+        }
+
+    if ports and ports[0].get("address"):
+        return {
+            "selected_port": ports[0]["address"],
+            "resolution": "fallback_first_detected_port",
+            "ports": ports,
+        }
+
+    return {
+        "selected_port": requested_port,
+        "resolution": "no_port_detected",
+        "ports": ports,
+    }
 
 
 @app.after_request
@@ -291,6 +352,12 @@ def generate_sketch():
                 400,
             )
 
+        resolved_port_info = None
+        effective_port = port
+        if upload:
+            resolved_port_info = resolve_upload_port(board, fqbn, port)
+            effective_port = resolved_port_info.get("selected_port")
+
         result = build_sketch_bundle(
             generated_dir=GENERATED_DIR,
             project_name=project_name,
@@ -298,9 +365,15 @@ def generate_sketch():
             workspace_json=workspace_json,
             cpp_code=cpp_code,
             fqbn=fqbn,
-            port=port,
+            port=effective_port,
             upload=upload,
         )
+
+        if resolved_port_info:
+            result["requested_port"] = port
+            result["resolved_port"] = effective_port
+            result["port_resolution"] = resolved_port_info.get("resolution")
+            result["detected_ports"] = resolved_port_info.get("ports", [])
 
         return jsonify(result), (200 if result.get("status") == "ok" else 500)
     except Exception as exc:

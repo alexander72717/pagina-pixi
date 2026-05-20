@@ -258,6 +258,8 @@ const progressTitleEl = document.getElementById("progress-title");
 const progressPercentEl = document.getElementById("progress-percent");
 const progressBarEl = document.getElementById("progress-bar");
 const progressMessageEl = document.getElementById("progress-message");
+const compilerHintsEl = document.getElementById("compiler-hints");
+const portHintsEl = document.getElementById("port-hints");
 
 const savedCompilerUrl = window.localStorage.getItem("pixi_compiler_url");
 const savedPortsByBoard = JSON.parse(window.localStorage.getItem("pixi_ports_by_board") || "{}");
@@ -270,6 +272,7 @@ compilerUrlInput.value = migratedCompilerUrl;
 window.localStorage.setItem("pixi_compiler_url", migratedCompilerUrl);
 projectNameInput.value = window.localStorage.getItem("pixi_project_name") || DEFAULT_PROJECT_NAME;
 let lastCompilerHealth = null;
+let lastDetectedPorts = [];
 
 let progressValue = 0;
 let progressTimer = null;
@@ -293,6 +296,27 @@ function getCompilerUrl() {
 
 function persistCompilerUrl() {
   window.localStorage.setItem("pixi_compiler_url", getCompilerUrl());
+}
+
+function updateRuntimeHints(data = null) {
+  const endpoint = getCompilerUrl();
+  const endpoints = data?.recommended_lan_compiler_endpoints || [];
+  const selectedPort = portInput.value.trim();
+
+  compilerHintsEl.textContent = endpoints.length
+    ? `Compiler endpoint actual: ${endpoint}. Sugeridos: ${endpoints.join(" | ")}`
+    : `Compiler endpoint actual: ${endpoint}`;
+
+  if (lastDetectedPorts.length) {
+    const summary = lastDetectedPorts
+      .map((port) => `${port.address}${port.board_name ? ` (${port.board_name})` : ""}`)
+      .join(" | ");
+    portHintsEl.textContent = `Puertos detectados: ${summary}${selectedPort ? `. Puerto seleccionado: ${selectedPort}` : ""}`;
+  } else {
+    portHintsEl.textContent = selectedPort
+      ? `No se detectaron puertos automaticamente. Puerto actual: ${selectedPort}`
+      : "Aun no se detectan puertos.";
+  }
 }
 
 function getSavedPortsByBoard() {
@@ -381,6 +405,7 @@ function updateBoardSelectionFromUI(boardsMap = null) {
   if (portsByBoard[boardSelect.value]) {
     portInput.value = portsByBoard[boardSelect.value];
   }
+  updateRuntimeHints(lastCompilerHealth);
 }
 
 function setProgress(value, message, title = "Proceso actual") {
@@ -491,6 +516,7 @@ async function checkBackend() {
       compilerUrlInput.value = data.recommended_compiler_endpoint;
       persistCompilerUrl();
     }
+    updateRuntimeHints(data);
   } catch (error) {
     backendStatusEl.textContent = `No se pudo conectar al backend: ${error.message}`;
   }
@@ -524,16 +550,18 @@ async function checkCompiler() {
     serialStatusEl.textContent = `${data.status}: compiler endpoint conectado.${compileMessage}${uploadMessage}${httpsMessage}`;
     uploadButton.dataset.allowed = data.upload_supported ? "true" : "false";
     uploadButton.disabled = !data.upload_supported;
-    uploadButton.title = data.upload_supported
-      ? ""
-      : "Este compiler endpoint no permite subida directa por USB.";
+      uploadButton.title = data.upload_supported
+        ? ""
+        : "Este compiler endpoint no permite subida directa por USB.";
     if (data.boards) {
       setBoardOptions(data.boards);
     }
+    updateRuntimeHints(data);
     await refreshDetectedPorts();
   } catch (error) {
     serialStatusEl.textContent = `No se pudo conectar al compiler endpoint: ${error.message}`;
     backendResponseEl.textContent = getCompilerEndpointErrorMessage();
+    updateRuntimeHints(lastCompilerHealth);
   }
 }
 
@@ -548,7 +576,9 @@ async function refreshDetectedPorts() {
     }
 
     const ports = data.ports || [];
+    lastDetectedPorts = ports;
     if (!ports.length) {
+      updateRuntimeHints(lastCompilerHealth);
       return;
     }
 
@@ -566,6 +596,7 @@ async function refreshDetectedPorts() {
       savePortForBoard(currentBoard, preferredPort.address);
       serialStatusEl.textContent = `${serialStatusEl.textContent} Puerto detectado: ${preferredPort.address}.`;
     }
+    updateRuntimeHints(lastCompilerHealth);
   } catch (_error) {
     // Si no se pueden consultar puertos, dejamos el valor manual actual.
   }
@@ -612,6 +643,14 @@ async function sendSketch(upload = false) {
     try {
       const data = JSON.parse(rawText);
       backendResponseEl.textContent = JSON.stringify(data, null, 2);
+      if (data.resolved_port) {
+        portInput.value = data.resolved_port;
+        savePortForBoard(boardSelect.value, data.resolved_port);
+      }
+      if (Array.isArray(data.detected_ports)) {
+        lastDetectedPorts = data.detected_ports;
+      }
+      updateRuntimeHints(lastCompilerHealth);
       stopFakeProgress(
         data.status === "ok" ? 100 : 0,
         data.message || "Proceso finalizado.",

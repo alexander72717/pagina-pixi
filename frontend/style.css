@@ -95,6 +95,23 @@ pre {
   margin-bottom: 16px;
 }
 
+.runtime-panel {
+  background: #f0fdf4;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.runtime-panel h2 {
+  margin-bottom: 8px;
+}
+
+.runtime-panel p {
+  margin: 6px 0;
+  color: var(--muted);
+}
+
 .progress-header {
   display: flex;
   justify-content: space-between;
