@@ -300,6 +300,38 @@ function persistCompilerUrl() {
   window.localStorage.setItem("pixi_compiler_url", getCompilerUrl());
 }
 
+function getStoredCompilerCandidates() {
+  return JSON.parse(window.localStorage.getItem("pixi_compiler_candidates") || "[]");
+}
+
+function saveCompilerCandidates(candidates) {
+  const unique = [];
+
+  for (const candidate of candidates || []) {
+    if (candidate && !unique.includes(candidate)) {
+      unique.push(candidate);
+    }
+  }
+
+  window.localStorage.setItem("pixi_compiler_candidates", JSON.stringify(unique));
+}
+
+function rememberCompilerCandidates(candidates) {
+  saveCompilerCandidates([...getStoredCompilerCandidates(), ...candidates]);
+}
+
+function getCompilerCandidateList() {
+  const candidates = [getCompilerUrl(), ...getStoredCompilerCandidates()];
+
+  if (window.location.protocol === "https:") {
+    candidates.push("https://localhost:5443");
+  } else {
+    candidates.push("http://127.0.0.1:5000");
+  }
+
+  return [...new Set(candidates.filter(Boolean))];
+}
+
 function updateRuntimeHints(data = null) {
   const endpoint = getCompilerUrl();
   const endpoints = data?.recommended_lan_compiler_endpoints || [];
@@ -342,6 +374,10 @@ function isInsecureCompilerEndpointFromSecurePage() {
 
 function getCompilerEndpointErrorMessage() {
   const endpoint = getCompilerUrl();
+  const rememberedCandidates = getStoredCompilerCandidates();
+  const rememberedMessage = rememberedCandidates.length
+    ? ["", "Endpoints recordados:", ...rememberedCandidates].join("\n")
+    : "";
 
   if (isInsecureCompilerEndpointFromSecurePage()) {
     return [
@@ -354,6 +390,7 @@ function getCompilerEndpointErrorMessage() {
       "1. Arranca el compiler service local en HTTPS.",
       "2. Luego abre https://localhost:5443/api/health y acepta el certificado local una vez.",
       "3. Despues vuelve a esta pagina y prueba otra vez.",
+      rememberedMessage,
     ].join("\n");
   }
 
@@ -366,7 +403,42 @@ function getCompilerEndpointErrorMessage() {
     "Si estas usando otro dispositivo distinto al que corre el compilador:",
     "no uses localhost ni 127.0.0.1.",
     "Usa la IP local de la PC que corre el compilador, por ejemplo https://192.168.1.20:5443",
+    "",
+    "Si cambiaste de red, la IP del compilador pudo cambiar.",
+    rememberedMessage,
   ].join("\n");
+}
+
+async function tryCompilerEndpoint(endpoint) {
+  const response = await fetch(`${endpoint}/api/health`);
+  const rawText = await response.text();
+  const data = JSON.parse(rawText);
+  return { endpoint, response, data };
+}
+
+async function resolveReachableCompiler(preferredEndpoint = null) {
+  const candidates = preferredEndpoint
+    ? [preferredEndpoint, ...getCompilerCandidateList()]
+    : getCompilerCandidateList();
+
+  let lastError = null;
+
+  for (const endpoint of [...new Set(candidates)]) {
+    try {
+      const result = await tryCompilerEndpoint(endpoint);
+      compilerUrlInput.value = endpoint;
+      persistCompilerUrl();
+      rememberCompilerCandidates([
+        endpoint,
+        ...(result.data?.recommended_lan_compiler_endpoints || []),
+      ]);
+      return result;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error("No se encontro un compiler endpoint disponible.");
 }
 
 function setBoardOptions(boards) {
@@ -544,9 +616,7 @@ async function checkCompiler() {
   }
 
   try {
-    const response = await fetch(`${getCompilerUrl()}/api/health`);
-    const rawText = await response.text();
-    const data = JSON.parse(rawText);
+    const { data } = await resolveReachableCompiler(getCompilerUrl());
     lastCompilerHealth = data;
     const compileMessage = data.compile_supported
       ? " Compilacion disponible."
@@ -631,6 +701,7 @@ async function sendSketch(upload = false) {
   try {
     setBusyState(true);
     startFakeProgress(upload);
+    await resolveReachableCompiler(getCompilerUrl());
     const response = await fetch(`${getCompilerUrl()}/api/generate`, {
       method: "POST",
       headers: {
