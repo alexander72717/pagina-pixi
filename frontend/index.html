@@ -26,19 +26,62 @@
       </section>
 
       <section class="workspace-panel">
-        <div class="toolbar">
-          <input id="project-name-input" type="text" value="mi_proyecto" />
-          <select id="board-select"></select>
-          <input id="compiler-url-input" type="text" value="http://127.0.0.1:5000" />
-          <input id="fqbn-input" type="text" value="esp32:esp32:esp32s3" />
-          <input id="port-input" type="text" value="COM5" />
+        <div class="quick-start-card">
+          <div>
+            <p class="quick-start-label">Modo listo para usar</p>
+            <h2>ESP32-S3 Zero</h2>
+            <p class="quick-start-copy">
+              Conecta el cerebro, abre tu proyecto y compila. La configuracion
+              avanzada queda oculta para no estorbar en el uso normal.
+            </p>
+          </div>
+          <div class="board-badge">Placa objetivo: ESP32-S3 Zero</div>
+        </div>
+
+        <div class="toolbar toolbar-primary">
+          <input
+            id="project-name-input"
+            type="text"
+            value="mi_proyecto"
+            aria-label="Nombre del proyecto"
+          />
           <button id="save-project-btn">Guardar proyecto</button>
           <button id="load-project-btn">Cargar proyecto</button>
-          <button id="run-check">Probar backend</button>
-          <button id="compiler-check">Probar compilador</button>
           <button id="generate-btn">Compilar sketch</button>
           <button id="upload-btn">Compilar y subir</button>
           <button id="serial-btn">Buscar puerto USB</button>
+        </div>
+
+        <details class="advanced-panel">
+          <summary>Modo avanzado</summary>
+          <p class="advanced-copy">
+            Usa esta seccion solo si necesitas revisar el compilador, cambiar el
+            endpoint local o depurar la conexion.
+          </p>
+          <div class="toolbar toolbar-advanced">
+            <select id="board-select" aria-label="Perfil de placa"></select>
+            <input
+              id="compiler-url-input"
+              type="text"
+              value="http://127.0.0.1:5000"
+              aria-label="Compiler endpoint"
+            />
+            <input
+              id="fqbn-input"
+              type="text"
+              value="esp32:esp32:esp32s3"
+              aria-label="FQBN"
+            />
+            <input id="port-input" type="text" value="COM5" aria-label="Puerto" />
+            <button id="run-check">Probar backend</button>
+            <button id="compiler-check">Probar compilador</button>
+          </div>
+        </details>
+
+        <div class="runtime-panel runtime-panel-compact">
+          <h2>Conexion actual</h2>
+          <p id="compiler-hints">Esperando informacion del compilador...</p>
+          <p id="port-hints">Aun no se detectan puertos.</p>
         </div>
         <div class="progress-panel">
           <div class="progress-header">
@@ -49,11 +92,6 @@
             <div id="progress-bar" class="progress-bar"></div>
           </div>
           <p id="progress-message">Sin actividad.</p>
-        </div>
-        <div class="runtime-panel">
-          <h2>Conexion actual</h2>
-          <p id="compiler-hints">Esperando informacion del compilador...</p>
-          <p id="port-hints">Aun no se detectan puertos.</p>
         </div>
         <div class="content-grid">
           <div id="blocklyDiv"></div>

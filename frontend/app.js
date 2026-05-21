@@ -3,6 +3,8 @@ const BACKEND_URL = isFrontendDevServer ? "http://127.0.0.1:5000" : window.locat
 const DEFAULT_COMPILER_URL =
   window.location.protocol === "https:" ? "https://localhost:5443" : "http://127.0.0.1:5000";
 const DEFAULT_PROJECT_NAME = "mi_proyecto";
+const DEFAULT_BOARD_ID = "esp32-s3-zero";
+const DEFAULT_FQBN = "esp32:esp32:esp32s3";
 
 function defineRobotBlocks() {
   Blockly.defineBlocksWithJsonArray([
@@ -302,20 +304,21 @@ function updateRuntimeHints(data = null) {
   const endpoint = getCompilerUrl();
   const endpoints = data?.recommended_lan_compiler_endpoints || [];
   const selectedPort = portInput.value.trim();
+  const visibleEndpoint = endpoint || "sin definir";
 
   compilerHintsEl.textContent = endpoints.length
-    ? `Compiler endpoint actual: ${endpoint}. Sugeridos: ${endpoints.join(" | ")}`
-    : `Compiler endpoint actual: ${endpoint}`;
+    ? `Compilador actual: ${visibleEndpoint}. Opciones detectadas: ${endpoints.join(" | ")}`
+    : `Compilador actual: ${visibleEndpoint}`;
 
   if (lastDetectedPorts.length) {
     const summary = lastDetectedPorts
       .map((port) => `${port.address}${port.board_name ? ` (${port.board_name})` : ""}`)
       .join(" | ");
-    portHintsEl.textContent = `Puertos detectados: ${summary}${selectedPort ? `. Puerto seleccionado: ${selectedPort}` : ""}`;
+    portHintsEl.textContent = `Puertos detectados: ${summary}${selectedPort ? `. Puerto activo: ${selectedPort}` : ""}`;
   } else {
     portHintsEl.textContent = selectedPort
       ? `No se detectaron puertos automaticamente. Puerto actual: ${selectedPort}`
-      : "Aun no se detectan puertos.";
+      : "Conecta la placa para detectar el puerto automaticamente.";
   }
 }
 
@@ -372,7 +375,7 @@ function setBoardOptions(boards) {
     return;
   }
 
-  const savedBoardId = window.localStorage.getItem("pixi_board_id") || "esp32-s3-zero";
+  const savedBoardId = window.localStorage.getItem("pixi_board_id") || DEFAULT_BOARD_ID;
 
   boardSelect.innerHTML = "";
 
@@ -383,27 +386,33 @@ function setBoardOptions(boards) {
     boardSelect.appendChild(option);
   });
 
-  boardSelect.value = entries.some(([boardId]) => boardId === savedBoardId)
-    ? savedBoardId
-    : entries[0][0];
+  if (entries.some(([boardId]) => boardId === DEFAULT_BOARD_ID)) {
+    boardSelect.value = DEFAULT_BOARD_ID;
+  } else if (entries.some(([boardId]) => boardId === savedBoardId)) {
+    boardSelect.value = savedBoardId;
+  } else {
+    boardSelect.value = entries[0][0];
+  }
 
   updateBoardSelectionFromUI(boards);
 }
 
 function updateBoardSelectionFromUI(boardsMap = null) {
   const boards = boardsMap || window.pixiBoards || {};
-  const profile = boards[boardSelect.value];
+  const desiredBoardId = boardSelect.value || DEFAULT_BOARD_ID;
+  const profile = boards[desiredBoardId];
   if (!profile) {
     return;
   }
 
   window.pixiBoards = boards;
-  fqbnInput.value = profile.fqbn || fqbnInput.value;
-  window.localStorage.setItem("pixi_board_id", boardSelect.value);
+  boardSelect.value = desiredBoardId;
+  fqbnInput.value = profile.fqbn || DEFAULT_FQBN;
+  window.localStorage.setItem("pixi_board_id", desiredBoardId);
 
   const portsByBoard = getSavedPortsByBoard();
-  if (portsByBoard[boardSelect.value]) {
-    portInput.value = portsByBoard[boardSelect.value];
+  if (portsByBoard[desiredBoardId]) {
+    portInput.value = portsByBoard[desiredBoardId];
   }
   updateRuntimeHints(lastCompilerHealth);
 }
@@ -509,7 +518,7 @@ async function checkBackend() {
         ? " Esta instancia publica sirve la interfaz."
         : " Esta instancia puede servir como compilador local.";
     backendStatusEl.textContent = `${data.status}: ${data.message}${cliMessage}${runtimeMessage}${roleMessage}`;
-  if (data.boards) {
+    if (data.boards) {
       setBoardOptions(data.boards);
     }
     if (data.recommended_compiler_endpoint && !isFrontendDevServer) {
@@ -550,9 +559,9 @@ async function checkCompiler() {
     serialStatusEl.textContent = `${data.status}: compiler endpoint conectado.${compileMessage}${uploadMessage}${httpsMessage}`;
     uploadButton.dataset.allowed = data.upload_supported ? "true" : "false";
     uploadButton.disabled = !data.upload_supported;
-      uploadButton.title = data.upload_supported
-        ? ""
-        : "Este compiler endpoint no permite subida directa por USB.";
+    uploadButton.title = data.upload_supported
+      ? ""
+      : "Este compiler endpoint no permite subida directa por USB.";
     if (data.boards) {
       setBoardOptions(data.boards);
     }
@@ -582,7 +591,7 @@ async function refreshDetectedPorts() {
       return;
     }
 
-    const currentBoard = boardSelect.value || "esp32-s3-zero";
+    const currentBoard = boardSelect.value || DEFAULT_BOARD_ID;
     const currentFqbn = fqbnInput.value.trim();
     const savedPort = getSavedPortsByBoard()[currentBoard];
 
@@ -629,8 +638,8 @@ async function sendSketch(upload = false) {
       },
       body: JSON.stringify({
         project_name: normalizeProjectName(),
-        board: boardSelect.value || "esp32-s3-zero",
-        fqbn: fqbnInput.value.trim() || "esp32:esp32:esp32s3",
+        board: boardSelect.value || DEFAULT_BOARD_ID,
+        fqbn: fqbnInput.value.trim() || DEFAULT_FQBN,
         port: portInput.value.trim(),
         upload,
         workspace: Blockly.serialization.workspaces.save(workspace),
