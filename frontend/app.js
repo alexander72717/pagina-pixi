@@ -521,8 +521,22 @@ async function flashArtifactInBrowser() {
 }
 
 function setFlashManifest(data) {
-  const manifest = data?.flash_manifest;
   const artifactUrls = data?.artifact_urls || {};
+  const manifest =
+    data?.flash_manifest ||
+    (artifactUrls.merged_binary
+      ? {
+          strategy: "single_merged_image",
+          address: "0x0",
+          files: [
+            {
+              label: "merged_binary",
+              filename: "merged_binary",
+              address: "0x0",
+            },
+          ],
+        }
+      : null);
 
   if (!manifest?.files?.length) {
     return;
@@ -564,6 +578,9 @@ function renderArtifactResult(data, upload = false) {
 
   if (artifactUrls.binary) {
     links.push({ label: "Descargar .bin", url: artifactUrls.binary });
+  }
+  if (artifactUrls.merged_binary) {
+    links.push({ label: "Descargar merged .bin", url: artifactUrls.merged_binary });
   }
   if (artifactUrls.sketch) {
     links.push({ label: "Descargar sketch", url: artifactUrls.sketch });
