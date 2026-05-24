@@ -262,6 +262,10 @@ const progressBarEl = document.getElementById("progress-bar");
 const progressMessageEl = document.getElementById("progress-message");
 const compilerHintsEl = document.getElementById("compiler-hints");
 const portHintsEl = document.getElementById("port-hints");
+const flowHintsEl = document.getElementById("flow-hints");
+const artifactSummaryEl = document.getElementById("artifact-summary");
+const artifactLinksEl = document.getElementById("artifact-links");
+const artifactStatusBadgeEl = document.getElementById("artifact-status-badge");
 
 const savedCompilerUrl = window.localStorage.getItem("pixi_compiler_url");
 const savedPortsByBoard = JSON.parse(window.localStorage.getItem("pixi_ports_by_board") || "{}");
@@ -294,6 +298,28 @@ function getProjectStorageKey() {
 function getCompilerUrl() {
   const raw = compilerUrlInput.value.trim();
   return raw || DEFAULT_COMPILER_URL;
+}
+
+function getCompilerUrlObject() {
+  try {
+    return new URL(getCompilerUrl());
+  } catch {
+    return null;
+  }
+}
+
+function isLoopbackHostname(hostname) {
+  const normalized = (hostname || "").toLowerCase();
+  return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "[::1]";
+}
+
+function isLikelyLocalCompilerEndpoint() {
+  const compilerUrl = getCompilerUrlObject();
+  if (!compilerUrl) {
+    return false;
+  }
+
+  return isLoopbackHostname(compilerUrl.hostname);
 }
 
 function persistCompilerUrl() {
@@ -337,6 +363,7 @@ function updateRuntimeHints(data = null) {
   const endpoints = data?.recommended_lan_compiler_endpoints || [];
   const selectedPort = portInput.value.trim();
   const visibleEndpoint = endpoint || "sin definir";
+  const localUploadPossible = isLikelyLocalCompilerEndpoint();
 
   compilerHintsEl.textContent = endpoints.length
     ? `Compilador actual: ${visibleEndpoint}. Opciones detectadas: ${endpoints.join(" | ")}`
@@ -352,6 +379,71 @@ function updateRuntimeHints(data = null) {
       ? `No se detectaron puertos automaticamente. Puerto actual: ${selectedPort}`
       : "Conecta la placa para detectar el puerto automaticamente.";
   }
+
+  if (data?.upload_supported && localUploadPossible) {
+    flowHintsEl.textContent = "Compilar crea archivos del programa. Compilar y subir ademas intenta cargarlos a la placa conectada en esta misma maquina.";
+  } else if (data?.upload_supported && !localUploadPossible) {
+    flowHintsEl.textContent = "Este compilador remoto puede subir a una placa conectada en su propia maquina, pero no a la placa USB de este equipo. Aqui conviene compilar y luego cargar localmente.";
+  } else {
+    flowHintsEl.textContent = "Compilar crea archivos descargables. La carga a la placa debe hacerse desde un equipo con acceso local al hardware.";
+  }
+}
+
+function setArtifactState(status, summary, links = []) {
+  artifactSummaryEl.textContent = summary;
+  artifactLinksEl.innerHTML = "";
+
+  artifactStatusBadgeEl.className = "artifact-badge";
+  if (status === "ok") {
+    artifactStatusBadgeEl.classList.add("artifact-badge-ok");
+    artifactStatusBadgeEl.textContent = "Artefactos listos";
+  } else if (status === "error") {
+    artifactStatusBadgeEl.classList.add("artifact-badge-error");
+    artifactStatusBadgeEl.textContent = "Con errores";
+  } else {
+    artifactStatusBadgeEl.classList.add("artifact-badge-idle");
+    artifactStatusBadgeEl.textContent = "Sin artefactos";
+  }
+
+  for (const link of links) {
+    const anchor = document.createElement("a");
+    anchor.className = "artifact-link";
+    anchor.href = link.url;
+    anchor.target = "_blank";
+    anchor.rel = "noopener noreferrer";
+    anchor.textContent = link.label;
+    artifactLinksEl.appendChild(anchor);
+  }
+}
+
+function renderArtifactResult(data, upload = false) {
+  const links = [];
+  const artifactUrls = data?.artifact_urls || {};
+
+  if (artifactUrls.binary) {
+    links.push({ label: "Descargar .bin", url: artifactUrls.binary });
+  }
+  if (artifactUrls.sketch) {
+    links.push({ label: "Descargar sketch", url: artifactUrls.sketch });
+  }
+  if (artifactUrls.workspace) {
+    links.push({ label: "Descargar workspace", url: artifactUrls.workspace });
+  }
+
+  if (data?.status === "ok") {
+    const summary = upload
+      ? data.message || "Compilacion y carga completadas."
+      : data.next_step_hint || data.message || "Compilacion completada.";
+    setArtifactState("ok", summary, links);
+    return;
+  }
+
+  if (data?.status === "error") {
+    setArtifactState("error", data.message || "La operacion no termino correctamente.", links);
+    return;
+  }
+
+  setArtifactState("idle", "Cuando compiles, aqui apareceran los archivos generados y el siguiente paso recomendado.");
 }
 
 function getSavedPortsByBoard() {
@@ -407,6 +499,29 @@ function getCompilerEndpointErrorMessage() {
     "Si cambiaste de red, la IP del compilador pudo cambiar.",
     rememberedMessage,
   ].join("\n");
+}
+
+function updateUploadAvailability(data = null) {
+  const localUploadPossible = isLikelyLocalCompilerEndpoint();
+  const compilerAllowsUpload = Boolean(data?.upload_supported);
+
+  if (compilerAllowsUpload && localUploadPossible) {
+    uploadButton.dataset.allowed = "true";
+    uploadButton.disabled = false;
+    uploadButton.title = "";
+    return;
+  }
+
+  uploadButton.dataset.allowed = "false";
+  uploadButton.disabled = true;
+
+  if (compilerAllowsUpload && !localUploadPossible) {
+    uploadButton.title =
+      "Este compiler endpoint esta en otra maquina. Hoy solo puede subir a la placa conectada a esa maquina, no a la de este equipo.";
+    return;
+  }
+
+  uploadButton.title = "Este compiler endpoint no permite subida directa por USB.";
 }
 
 async function tryCompilerEndpoint(endpoint) {
@@ -609,8 +724,7 @@ async function checkCompiler() {
   if (isInsecureCompilerEndpointFromSecurePage()) {
     serialStatusEl.textContent = "No se puede probar un compiler endpoint HTTP desde la pagina HTTPS de Render.";
     backendResponseEl.textContent = getCompilerEndpointErrorMessage();
-    uploadButton.dataset.allowed = "false";
-    uploadButton.disabled = true;
+    updateUploadAvailability(null);
     uploadButton.title = "Abre la version local de la web o usa un compiler endpoint con HTTPS.";
     return;
   }
@@ -627,11 +741,7 @@ async function checkCompiler() {
     const httpsMessage = data.https_enabled ? " HTTPS local activo." : "";
     backendResponseEl.textContent = JSON.stringify(data, null, 2);
     serialStatusEl.textContent = `${data.status}: compiler endpoint conectado.${compileMessage}${uploadMessage}${httpsMessage}`;
-    uploadButton.dataset.allowed = data.upload_supported ? "true" : "false";
-    uploadButton.disabled = !data.upload_supported;
-    uploadButton.title = data.upload_supported
-      ? ""
-      : "Este compiler endpoint no permite subida directa por USB.";
+    updateUploadAvailability(data);
     if (data.boards) {
       setBoardOptions(data.boards);
     }
@@ -640,6 +750,7 @@ async function checkCompiler() {
   } catch (error) {
     serialStatusEl.textContent = `No se pudo conectar al compiler endpoint: ${error.message}`;
     backendResponseEl.textContent = getCompilerEndpointErrorMessage();
+    updateUploadAvailability(null);
     updateRuntimeHints(lastCompilerHealth);
   }
 }
@@ -688,6 +799,26 @@ async function sendSketch(upload = false) {
 
   if (!cppCode) {
     backendResponseEl.textContent = "Primero agrega algunos bloques para poder generar codigo.";
+    setArtifactState("idle", "Todavia no hay compilacion porque el proyecto no tiene bloques conectados.");
+    return;
+  }
+
+  if (upload && !isLikelyLocalCompilerEndpoint()) {
+    backendResponseEl.textContent = [
+      "La subida directa por USB no puede hacerse usando un compiler endpoint que esta en otra maquina.",
+      "",
+      "Lo que si funciona hoy:",
+      "1. compilar en remoto",
+      "2. descargar el .bin generado",
+      "3. preparar una carga local desde este equipo",
+      "",
+      "Si quieres que la subida funcione ahora mismo, usa un compiler endpoint local como https://localhost:5443 en esta misma maquina.",
+    ].join("\n");
+    setArtifactState(
+      "error",
+      "La compilacion remota puede funcionar, pero la carga USB todavia depende de una accion local en el equipo donde esta conectada la placa."
+    );
+    stopFakeProgress(0, "La subida remota no esta disponible en este flujo.", "Compilar y subir");
     return;
   }
 
@@ -695,6 +826,7 @@ async function sendSketch(upload = false) {
     backendResponseEl.textContent = getCompilerEndpointErrorMessage();
     serialStatusEl.textContent = "La compilacion desde Render hacia un compiler endpoint HTTP local esta bloqueada por el navegador.";
     stopFakeProgress(0, "Conexion bloqueada antes de iniciar.", upload ? "Compilar y subir" : "Compilar sketch");
+    setArtifactState("error", "La conexion al compilador local fue bloqueada antes de crear artefactos.");
     return;
   }
 
@@ -723,6 +855,7 @@ async function sendSketch(upload = false) {
     try {
       const data = JSON.parse(rawText);
       backendResponseEl.textContent = JSON.stringify(data, null, 2);
+      renderArtifactResult(data, upload);
       if (data.resolved_port) {
         portInput.value = data.resolved_port;
         savePortForBoard(boardSelect.value, data.resolved_port);
@@ -739,10 +872,12 @@ async function sendSketch(upload = false) {
     } catch {
       backendResponseEl.textContent = `El backend no devolvio JSON.\n\nHTTP ${response.status}\n\n${rawText}`;
       stopFakeProgress(0, "La operacion termino con una respuesta inesperada.", upload ? "Compilar y subir" : "Compilar sketch");
+      setArtifactState("error", "La compilacion respondio de forma inesperada y no se pudieron interpretar artefactos.");
     }
   } catch (error) {
     backendResponseEl.textContent = `Error enviando al backend: ${error.message}\n\n${getCompilerEndpointErrorMessage()}`;
     stopFakeProgress(0, `Error: ${error.message}`, upload ? "Compilar y subir" : "Compilar sketch");
+    setArtifactState("error", "No se pudo completar la solicitud al compilador.");
   } finally {
     setBusyState(false);
   }
@@ -775,9 +910,15 @@ boardSelect.addEventListener("change", async () => {
   await refreshDetectedPorts();
 });
 portInput.addEventListener("change", () => savePortForBoard(boardSelect.value, portInput.value.trim()));
+compilerUrlInput.addEventListener("input", () => {
+  updateUploadAvailability(lastCompilerHealth);
+  updateRuntimeHints(lastCompilerHealth);
+});
 saveProjectButton.addEventListener("click", saveProjectToBrowser);
 loadProjectButton.addEventListener("click", loadProjectFromBrowser);
 
 checkBackend();
 checkCompiler();
 setProgress(0, "Sin actividad.");
+setArtifactState("idle", "Cuando compiles, aqui apareceran los archivos generados y el siguiente paso recomendado.");
+updateUploadAvailability(null);
