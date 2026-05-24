@@ -1,0 +1,61 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "robot_led_set_color",
+        "id": "!sANr=sMz/6*]9:XG4S?",
+        "x": 195,
+        "y": 110,
+        "fields": {
+          "COLOR": "RED"
+        },
+        "next": {
+          "block": {
+            "type": "robot_wait_ms",
+            "id": "3wTWm7#i6U;WF8}xt]Zb",
+            "fields": {
+              "TIME_MS": 500
+            },
+            "next": {
+              "block": {
+                "type": "robot_led_set_color",
+                "id": "3/Up7-?$R5oZ*T^:4^hC",
+                "fields": {
+                  "COLOR": "BLUE"
+                },
+                "next": {
+                  "block": {
+                    "type": "robot_wait_ms",
+                    "id": ")5m%QwOPoD(IzYV20t5z",
+                    "fields": {
+                      "TIME_MS": 500
+                    },
+                    "next": {
+                      "block": {
+                        "type": "robot_led_set_color",
+                        "id": "OYyvoO6/sn;v0XI4B4:.",
+                        "fields": {
+                          "COLOR": "GREEN"
+                        },
+                        "next": {
+                          "block": {
+                            "type": "robot_wait_ms",
+                            "id": "+D%I4m-IE5QyjmjAgJcD",
+                            "fields": {
+                              "TIME_MS": 500
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

@@ -115,6 +115,7 @@ def build_sketch_bundle(
     response = {
         "status": "ok" if compile_result["returncode"] == 0 else "error",
         "message": "Sketch compilado correctamente." if compile_result["returncode"] == 0 else "La compilacion fallo.",
+        "artifact_id": sketch_name,
         "board": board,
         "board_profile": profile,
         "project_name": safe_name,
@@ -123,6 +124,11 @@ def build_sketch_bundle(
         "sketch_path": str(ino_path),
         "workspace_path": str(workspace_path),
         "binary_path": str(binary_path) if binary_path.exists() else None,
+        "artifact_files": {
+            "sketch": ino_path.name,
+            "workspace": workspace_path.name,
+            "binary": binary_path.name if binary_path.exists() else None,
+        },
         "compile_mode": "arduino-cli",
         "sketch_code": sketch_code,
         "compile_result": compile_result,

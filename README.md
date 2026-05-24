@@ -1,221 +1,172 @@
 # Pixi Blocks Lab
 
-Pixi Blocks Lab es un proyecto educativo para programar placas `ESP32` usando bloques visuales en el navegador.
+Pixi Blocks Lab es una plataforma educativa para programar robots con bloques visuales y placas `ESP32`.
 
-La idea principal es simple:
+La idea del proyecto es simple:
 
-- una persona crea un programa con bloques
-- la plataforma lo convierte en codigo para la placa
-- la placa ejecuta ese programa
+1. crear un programa con bloques
+2. convertirlo en codigo para la placa
+3. compilarlo
+4. cargarlo en el robot
 
-Hoy el proyecto ya puede:
+La placa objetivo principal del producto es:
+
+- `ESP32-S3 Zero`
+
+## Que problema quiere resolver
+
+Hoy programar una placa para robotica educativa suele exigir demasiadas cosas tecnicas:
+
+- instalar herramientas
+- aprender configuraciones de compilacion
+- entender puertos y placas
+- escribir codigo desde cero
+
+Pixi Blocks Lab quiere reducir esa friccion para que la experiencia se acerque mas a herramientas educativas tipo arrastrar, conectar y programar.
+
+## Que hace hoy
+
+El proyecto ya puede:
 
 - mostrar una interfaz visual con `Blockly`
-- generar codigo C++
-- compilar para distintas placas `ESP32`
-- subir programas por USB a placas compatibles
-- controlar el LED RGB integrado desde bloques
+- generar codigo `C++`
+- compilar sketches para `ESP32`
+- subir programas por USB en entorno local
+- controlar el LED de la placa desde bloques
 - guardar y cargar proyectos en el navegador
 
-## Que hace este proyecto
+## Como esta organizado
 
-Este proyecto busca que programar hardware sea mas facil y mas amigable, especialmente para aprendizaje.
+Hoy el sistema se divide en dos piezas principales:
 
-En vez de escribir codigo desde cero, la persona puede:
+### 1. Web App
 
-1. arrastrar bloques
-2. crear una secuencia logica
-3. compilar ese programa
-4. cargarlo en la placa
-
-## Como funciona hoy
-
-El sistema esta dividido en dos partes:
-
-### 1. La Web App
-
-Es la parte visual.
+Es la interfaz que ve la persona usuaria.
 
 Sirve para:
 
-- mostrar los bloques
+- arrastrar bloques
 - ver el codigo generado
-- configurar el compilador
-- enviar el proyecto a compilar
+- guardar proyectos
+- pedir compilacion
 
-Esta web puede vivir en internet, por ejemplo en `Render`.
+Esta web puede publicarse en internet, por ejemplo con `Render`.
 
-### 2. El Compiler Service
+### 2. Compiler Service
 
-Es la parte que hace el trabajo pesado.
+Es el servicio que hace el trabajo de compilacion.
 
 Sirve para:
 
 - recibir el codigo generado
-- crear el sketch para Arduino
-- compilarlo con `arduino-cli`
-- opcionalmente subirlo por USB a la placa
+- crear el sketch
+- compilar con `arduino-cli`
+- opcionalmente subir por USB cuando corre en una maquina local
 
-Hoy este servicio corre localmente en tu PC.
+## Como funciona la arquitectura hoy
 
-## Arquitectura actual
+La arquitectura actual es un paso intermedio entre prototipo y producto final.
 
-La arquitectura que estamos usando ya esta pensada para crecer sin rehacer todo despues.
+Funciona asi:
 
-Hoy funciona asi:
+- `Render` publica la web
+- una PC local puede correr el Compiler Service
+- la web puede pedirle compilacion a ese servicio
 
-- `Render` publica la pagina web
-- tu PC corre el servicio de compilacion
-- la web publica se conecta a tu compilador local
+Eso nos permite:
 
-Eso permite:
+- avanzar sin pagar todavia un servidor de compilacion potente
+- probar la separacion entre interfaz y compilacion
+- seguir construyendo el producto con una base mas escalable
 
-- tener una pagina online
-- seguir usando los recursos de tu PC para compilar
-- mantener la posibilidad de subir por USB cuando estas en tu propio equipo
+## Importante: compilacion y carga no son lo mismo
 
-Mas adelante esta misma arquitectura puede evolucionar a:
+Este punto es clave para entender el proyecto:
 
-- web publica en internet
-- servicio de compilacion en un servidor con mas memoria
-- misma interfaz
-- mismo flujo general
+- la compilacion si puede vivir en un servidor
+- la carga por USB depende del equipo que tiene conectada la placa
 
-## Por que esta arquitectura es importante
+Por eso, a largo plazo, la arquitectura correcta del producto es:
 
-No quisimos unir todo en un solo servidor porque eso haria mas dificil escalar el proyecto.
+- web publica
+- compilacion remota
+- carga local desde el equipo del usuario
 
-Separar:
+Hoy esa arquitectura final todavia esta en construccion.
 
-- la interfaz
-- la compilacion
-- y el acceso al hardware
+## Que ya se logro validar
 
-hace que el sistema sea mas flexible.
+El proyecto ya valido varias partes importantes:
 
-Por ejemplo:
+- compilacion real para `ESP32-S3 Zero`
+- subida real por USB en entorno local
+- comunicacion entre la web publica y un compilador local
+- control del LED desde bloques
+- base inicial para hardware del robot
 
-- hoy el compilador corre en tu PC
-- manana puede correr en una Raspberry Pi
-- despues puede correr en un servidor mas potente
+## Cambio importante en esta fase
 
-Sin obligarte a rehacer toda la aplicacion.
+En esta etapa empezamos a separar mejor el concepto de `compilar` del de `subir`.
 
-## Estado actual del hardware
+Ahora el backend puede devolver:
 
-La placa `ESP32-S3 Zero` ya fue probada con exito.
+- `artifact_id`
+- `artifact_files`
+- `artifact_urls`
+
+Eso significa que la compilacion remota ya puede dejar artefactos descargables, lo cual es un paso importante hacia el modelo final donde el servidor compila y el cliente decide como cargar el resultado.
+
+## Flujo recomendado hoy
+
+### Opcion 1. Una sola PC
+
+La misma maquina hace todo:
+
+- abre la web
+- compila
+- tiene conectada la placa
+- sube el programa
+
+Este sigue siendo el flujo mas estable para desarrollo y pruebas rapidas.
+
+### Opcion 2. Web publica + compilador local
+
+La web vive en `Render`, pero la compilacion la hace tu PC.
+
+Este flujo sirve para:
+
+- validar la arquitectura distribuida
+- probar el sistema desde otros equipos
+- seguir evolucionando la API de compilacion
+
+## Estado de la placa principal
+
+La `ESP32-S3 Zero` ya esta integrada como placa objetivo del proyecto.
 
 Actualmente ya se confirmo:
 
-- compilacion real para `ESP32-S3`
-- subida real por USB
-- control del LED RGB integrado
+- compilacion real
+- subida por USB
+- control del LED RGB
 
-El LED RGB integrado de esta placa ya funciona desde bloques con estos colores:
+Tambien ya existe configuracion inicial para:
 
-- rojo
-- verde
-- azul
-- blanco
-- apagado
+- motores
+- boton
+- I2C
+- OLED
 
-Tambien dejamos el proyecto preparado para cambiar de placa desde la interfaz.
+## Sobre la ESP32-C3 Super Mini
 
-Hoy existen perfiles iniciales para:
+Existe un perfil para `ESP32-C3 Super Mini`, pero debe entenderse solo como soporte temporal de desarrollo.
 
-- `ESP32-S3 Zero`
-- `ESP32-C3 Super Mini`
-
-Importante:
-
-- la `ESP32-S3 Zero` ya fue probada directamente
-- la `ESP32-C3 Super Mini` puede requerir pequenos ajustes de pines segun la version exacta de la placa
-
-## Que significa usar Render
-
-`Render` es el servicio donde la pagina web puede quedar publicada en internet.
-
-Eso significa que la interfaz puede abrirse desde cualquier navegador con una URL publica.
-
-Importante:
-
-- `Render` sirve la pagina
-- `Render` no accede al USB de la placa
-- el USB sigue siendo algo local del equipo del usuario
-
-En esta etapa, `Render` no hace la compilacion pesada porque el plan gratuito no tiene suficiente memoria para compilar `ESP32` con estabilidad.
-
-Por eso la compilacion sigue corriendo localmente en tu PC.
-
-## Que es el compiler endpoint
-
-En la interfaz existe un campo llamado `compiler endpoint`.
-
-Ese campo le dice a la web:
-
-> "a que servicio le voy a pedir que compile"
-
-Hoy el valor normal es:
-
-```text
-http://127.0.0.1:5000
-```
-
-Eso apunta al compilador que corre en tu propio PC.
-
-Si la web se abre desde `Render`, el camino mas prometedor para que el navegador permita la conexion es usar el compiler service local en `HTTPS`.
-
-La direccion esperada para esa fase es:
-
-```text
-https://localhost:5443
-```
-
-## Como usar la plataforma hoy
-
-### Opcion 1: Uso local completo
-
-Usas todo en tu PC.
-
-- la web
-- la compilacion
-- la subida por USB
-
-### Opcion 2: Web publica + compilacion local
-
-Usas la pagina publicada en `Render`, pero la compilacion ocurre en tu PC.
-
-Eso funciona asi:
-
-1. abres la pagina online
-2. la interfaz carga desde `Render`
-3. el `compiler endpoint` apunta a tu PC
-4. la compilacion se hace localmente
-
-## Como cambiar de placa
-
-La interfaz ahora incluye un selector de placa.
-
-Eso permite cambiar de forma mas limpia entre perfiles compatibles sin editar archivos cada vez.
-
-Cuando cambias la placa:
-
-- la interfaz ajusta el `FQBN`
-- el backend genera una configuracion de hardware para esa placa
-- el firmware usa ese perfil al compilar
-
-Hoy el flujo recomendado es:
-
-1. elegir la placa en el selector
-2. comprobar el `FQBN`
-3. compilar
-4. hacer una prueba simple de LED antes de conectar mas hardware
+No es la placa objetivo del producto final.
 
 ## Como iniciar el compilador local
 
 Abre una terminal en:
 
-[`backend`](C:\Users\samue\Desktop\Spixers\codigo\pagina pixi\backend)
+[C:\Users\samue\Desktop\Spixers\codigo\pagina pixi\backend](C:\Users\samue\Desktop\Spixers\codigo\pagina pixi\backend)
 
 Y ejecuta:
 
@@ -223,163 +174,79 @@ Y ejecuta:
 .\.venv\Scripts\python.exe app.py
 ```
 
-Si todo sale bien, el compiler service queda disponible en:
-
-```text
-http://127.0.0.1:5000
-```
-
 ## Como iniciar el compilador local en HTTPS
 
-Para avanzar en la comunicacion entre la web publica y tu PC, ya dejamos una forma inicial de arrancar el compilador local con `HTTPS`.
-
-Abre una terminal en:
-
-[`backend`](C:\Users\samue\Desktop\Spixers\codigo\pagina pixi\backend)
-
-Y ejecuta:
+Si quieres que la web publicada en `Render` pueda intentar hablar con tu compilador local, usa HTTPS:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\start_compiler_https.ps1
+$env:PIXI_FORCE_LOCAL="true"; $env:PIXI_USE_HTTPS="true"; $env:PIXI_LOCAL_HOST="localhost"; $env:PORT="5443"; .\.venv\Scripts\python.exe app.py
 ```
 
-Eso levanta el compiler service en:
+Luego abre:
 
-```text
-https://localhost:5443
-```
+[https://localhost:5443/api/health](https://localhost:5443/api/health)
 
-La primera vez, el navegador puede advertir que el certificado es local o no confiable. En esta fase eso es esperado.
+Y acepta el certificado local si el navegador lo pide.
 
-Haz esta prueba:
+## Como usarlo desde otro equipo de tu red
 
-1. abre `https://localhost:5443/api/health`
-2. acepta el certificado local si el navegador lo pide
-3. despues vuelve a la web de `Render`
-4. deja el `compiler endpoint` en `https://localhost:5443`
-5. pulsa `Probar compilador`
+Si quieres que otro PC use tu compilador temporal:
 
-## Como usar el compilador desde otro equipo de la misma red
-
-Si la web se abre en otro PC o tablet, `localhost` ya no apunta a tu computador principal.
-
-En ese caso necesitas usar la IP local de la maquina que corre el compilador.
-
-Dejamos un script para eso:
-
-```powershell
-.\start_compiler_lan_https.ps1
-```
-
-Ese script intenta detectar una IP local y te muestra un endpoint sugerido, por ejemplo:
-
-```text
-https://192.168.1.20:5443
-```
-
-Luego, desde el otro equipo:
-
-1. abre `https://192.168.1.20:5443/api/health`
-2. acepta la advertencia del certificado local si aparece
-3. abre la web publica de `Render`
-4. en `compiler endpoint` usa esa misma IP
-5. pulsa `Probar compilador`
+1. arranca el compilador en tu PC principal
+2. mira la IP local que muestra la terminal
+3. desde el otro equipo abre esa ruta `/api/health`
+4. usa esa misma direccion como `compiler endpoint`
 
 Importante:
 
-- ambos equipos deben estar en la misma red local
-- Windows puede pedir permiso de firewall la primera vez
-- si la IP cambia, debes actualizar el `compiler endpoint`
+- ambos equipos deben estar en la misma red
+- la IP puede cambiar entre casa y trabajo
+- por eso el endpoint remoto puede necesitar actualizarse
 
-## Como usar la web publicada
+## Documentacion de arquitectura
 
-1. abre la URL publica de tu proyecto en `Render`
-2. en el campo `compiler endpoint` deja:
+La explicacion completa de la arquitectura y del plan a futuro esta aqui:
 
-```text
-https://localhost:5443
-```
+- [docs/ARCHITECTURE_ROADMAP.md](C:\Users\samue\Desktop\Spixers\codigo\pagina pixi\docs\ARCHITECTURE_ROADMAP.md)
 
-3. pulsa `Probar compilador`
-4. si todo esta bien, ya puedes compilar
+Ese documento responde cosas como:
 
-## Lo que ya se puede hacer en Blockly
+- que es temporal y que es definitivo
+- por que la compilacion y la carga deben separarse
+- que cambios queremos hacer despues
+- como queremos llegar a una experiencia mas plug and play
 
-Actualmente ya existen bloques para:
-
-- encender LED rojo
-- encender LED verde
-- encender LED azul
-- encender LED blanco
-- apagar LED
-- esperar
-- repetir
-- condiciones simples
-- guardar proyecto
-- cargar proyecto
-
-## Limitaciones actuales
-
-Este proyecto ya funciona, pero sigue siendo un prototipo.
-
-Eso significa que todavia faltan cosas como:
-
-- mas bloques de hardware
-- mejor experiencia para usuarios no tecnicos
-- una solucion final de compilacion remota plug and play
-- mas pruebas en otros equipos
-
-## Objetivo de las siguientes fases
-
-La meta no es solo que funcione hoy, sino que el proyecto pueda crecer sin romperse.
-
-Los siguientes pasos recomendados son:
-
-1. mejorar la documentacion para usuarios finales
-2. seguir ampliando bloques utiles
-3. hacer mas clara la separacion entre Web App y Compiler Service
-4. preparar el camino para una compilacion remota real en el futuro
-5. mejorar la experiencia de uso para que sea mas cercana a "plug and play"
-
-## Seccion tecnica corta
-
-Estructura principal del proyecto:
+## Estructura general del proyecto
 
 ```text
 pagina pixi/
-├── backend/
-├── firmware/
-├── frontend/
-├── diagnostics/
-├── Dockerfile
-└── render.yaml
+|-- backend/
+|-- diagnostics/
+|-- docs/
+|-- firmware/
+|-- frontend/
+|-- Dockerfile
+`-- render.yaml
 ```
 
 Archivos importantes:
 
-- [`backend/app.py`](C:\Users\samue\Desktop\Spixers\codigo\pagina pixi\backend\app.py)
-- [`backend/compiler.py`](C:\Users\samue\Desktop\Spixers\codigo\pagina pixi\backend\compiler.py)
-- [`frontend/index.html`](C:\Users\samue\Desktop\Spixers\codigo\pagina pixi\frontend\index.html)
-- [`frontend/app.js`](C:\Users\samue\Desktop\Spixers\codigo\pagina pixi\frontend\app.js)
-- [`firmware/include/RobotHAL.h`](C:\Users\samue\Desktop\Spixers\codigo\pagina pixi\firmware\include\RobotHAL.h)
-- [`render.yaml`](C:\Users\samue\Desktop\Spixers\codigo\pagina pixi\render.yaml)
-
-## Nota importante sobre Windows
-
-Durante las pruebas encontramos que `Smart App Control` en Windows 11 puede bloquear partes del toolchain de `arduino-cli`.
-
-Si la compilacion falla con mensajes relacionados con bloqueo de aplicaciones, revisa esa configuracion del sistema.
+- [backend/app.py](C:\Users\samue\Desktop\Spixers\codigo\pagina pixi\backend\app.py)
+- [backend/compiler.py](C:\Users\samue\Desktop\Spixers\codigo\pagina pixi\backend\compiler.py)
+- [frontend/index.html](C:\Users\samue\Desktop\Spixers\codigo\pagina pixi\frontend\index.html)
+- [frontend/app.js](C:\Users\samue\Desktop\Spixers\codigo\pagina pixi\frontend\app.js)
+- [firmware/include/RobotHAL.h](C:\Users\samue\Desktop\Spixers\codigo\pagina pixi\firmware\include\RobotHAL.h)
 
 ## Resumen
 
-Pixi Blocks Lab ya no es solo una idea:
+Pixi Blocks Lab ya tiene una base real:
 
-- ya tiene web
-- ya tiene compilador
-- ya programa una `ESP32-S3 Zero`
-- ya controla hardware real
+- interfaz web
+- generacion de codigo
+- compilacion
+- carga local
+- separacion inicial de servicios
 
 Y lo mas importante:
 
-la arquitectura ya esta encaminada para crecer de manera ordenada.
+la arquitectura ya se esta ordenando para que el prototipo actual pueda evolucionar hacia un producto mucho mas simple para el usuario final.

@@ -103,6 +103,19 @@ def get_recommended_compiler_endpoints():
     return endpoints
 
 
+def build_artifact_urls(artifact_id: str, artifact_files: dict | None):
+    urls = {}
+
+    if not artifact_id or not artifact_files:
+        return urls
+
+    for label, filename in artifact_files.items():
+        if filename:
+            urls[label] = f"/api/artifacts/{artifact_id}/{filename}"
+
+    return urls
+
+
 CORS(
     app,
     resources={r"/api/*": {"origins": get_allowed_origins()}},
@@ -257,6 +270,52 @@ def serve_frontend_asset(path: str):
     return send_from_directory(FRONTEND_DIR, "index.html")
 
 
+@app.get("/api/artifacts/<artifact_id>/<path:filename>")
+def download_artifact(artifact_id: str, filename: str):
+    artifact_dir = GENERATED_DIR / artifact_id
+
+    if not artifact_dir.exists() or not artifact_dir.is_dir():
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "No se encontro el artefacto solicitado.",
+                    "artifact_id": artifact_id,
+                }
+            ),
+            404,
+        )
+
+    candidate = (artifact_dir / filename).resolve()
+    base = artifact_dir.resolve()
+
+    if base not in candidate.parents and candidate != base:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "La ruta solicitada no es valida.",
+                }
+            ),
+            400,
+        )
+
+    if not candidate.exists() or not candidate.is_file():
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "El archivo solicitado no existe dentro del artefacto.",
+                    "artifact_id": artifact_id,
+                    "filename": filename,
+                }
+            ),
+            404,
+        )
+
+    return send_from_directory(artifact_dir, filename, as_attachment=True)
+
+
 @app.get("/api/health")
 def health_check():
     try:
@@ -374,6 +433,17 @@ def generate_sketch():
             result["resolved_port"] = effective_port
             result["port_resolution"] = resolved_port_info.get("resolution")
             result["detected_ports"] = resolved_port_info.get("ports", [])
+
+        result["artifact_urls"] = build_artifact_urls(
+            result.get("artifact_id"),
+            result.get("artifact_files"),
+        )
+
+        if result.get("status") == "ok" and not upload:
+            result["next_step_hint"] = (
+                "La compilacion termino bien. Este bundle ya puede descargarse o usarse despues "
+                "en un flujo de carga local desde el equipo del usuario."
+            )
 
         return jsonify(result), (200 if result.get("status") == "ok" else 500)
     except Exception as exc:

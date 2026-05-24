@@ -1,0 +1,43 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "robot_led_set_color",
+        "id": ")i2ai{kSX5A^t~E|:+%H",
+        "x": 123,
+        "y": 59,
+        "fields": {
+          "COLOR": "RED"
+        },
+        "next": {
+          "block": {
+            "type": "robot_wait_ms",
+            "id": "k1xq)?FA0QEHoS{Z%UmO",
+            "fields": {
+              "TIME_MS": 500
+            },
+            "next": {
+              "block": {
+                "type": "robot_led_set_color",
+                "id": "b($fevM-4V4Yb8+*{YI`",
+                "fields": {
+                  "COLOR": "BLUE"
+                },
+                "next": {
+                  "block": {
+                    "type": "robot_wait_ms",
+                    "id": "aV6FycIfRpLz+,.4{[/=",
+                    "fields": {
+                      "TIME_MS": 500
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

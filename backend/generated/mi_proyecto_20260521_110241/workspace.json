@@ -1,0 +1,43 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "robot_led_set_color",
+        "id": ")sp-4Va3Gz39.DnkUlMZ",
+        "x": 140,
+        "y": 122,
+        "fields": {
+          "COLOR": "BLUE"
+        },
+        "next": {
+          "block": {
+            "type": "robot_wait_ms",
+            "id": "}cz7CEZ!m2]aQ%D]q)+Y",
+            "fields": {
+              "TIME_MS": 500
+            },
+            "next": {
+              "block": {
+                "type": "robot_led_set_color",
+                "id": "?5WlxXeJ[[M(FS59QF^u",
+                "fields": {
+                  "COLOR": "RED"
+                },
+                "next": {
+                  "block": {
+                    "type": "robot_wait_ms",
+                    "id": "H[m_T:wkr`|SC!#_?*2L",
+                    "fields": {
+                      "TIME_MS": 500
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}
