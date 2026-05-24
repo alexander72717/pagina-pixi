@@ -239,6 +239,13 @@ pre {
   gap: 10px;
 }
 
+.artifact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
 .artifact-link {
   display: inline-flex;
   align-items: center;
@@ -252,6 +259,10 @@ pre {
 
 .artifact-link:hover {
   filter: saturate(1.06);
+}
+
+.artifact-action-button {
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
 }
 
 .progress-header {

@@ -103,7 +103,7 @@ def get_recommended_compiler_endpoints():
     return endpoints
 
 
-def build_artifact_urls(artifact_id: str, artifact_files: dict | None):
+def build_artifact_urls(artifact_id: str, artifact_files: dict | None, base_url: str):
     urls = {}
 
     if not artifact_id or not artifact_files:
@@ -111,7 +111,7 @@ def build_artifact_urls(artifact_id: str, artifact_files: dict | None):
 
     for label, filename in artifact_files.items():
         if filename:
-            urls[label] = f"/api/artifacts/{artifact_id}/{filename}"
+            urls[label] = f"{base_url.rstrip('/')}/api/artifacts/{artifact_id}/{filename}"
 
     return urls
 
@@ -437,6 +437,7 @@ def generate_sketch():
         result["artifact_urls"] = build_artifact_urls(
             result.get("artifact_id"),
             result.get("artifact_files"),
+            request.host_url,
         )
 
         if result.get("status") == "ok" and not upload:

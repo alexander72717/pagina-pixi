@@ -112,6 +112,7 @@ def build_sketch_bundle(
     )
 
     binary_path = build_dir / f"{sketch_name}.ino.bin"
+    merged_binary_path = build_dir / f"{sketch_name}.ino.merged.bin"
     response = {
         "status": "ok" if compile_result["returncode"] == 0 else "error",
         "message": "Sketch compilado correctamente." if compile_result["returncode"] == 0 else "La compilacion fallo.",
@@ -124,15 +125,31 @@ def build_sketch_bundle(
         "sketch_path": str(ino_path),
         "workspace_path": str(workspace_path),
         "binary_path": str(binary_path) if binary_path.exists() else None,
+        "merged_binary_path": str(merged_binary_path) if merged_binary_path.exists() else None,
         "artifact_files": {
             "sketch": ino_path.name,
             "workspace": workspace_path.name,
             "binary": binary_path.name if binary_path.exists() else None,
+            "merged_binary": merged_binary_path.name if merged_binary_path.exists() else None,
         },
         "compile_mode": "arduino-cli",
         "sketch_code": sketch_code,
         "compile_result": compile_result,
     }
+
+    if merged_binary_path.exists():
+        response["flash_manifest"] = {
+            "strategy": "single_merged_image",
+            "address": "0x0",
+            "chip_family": fqbn.split(":")[-1],
+            "files": [
+                {
+                    "label": "merged_binary",
+                    "filename": merged_binary_path.name,
+                    "address": "0x0",
+                }
+            ],
+        }
 
     if compile_result["returncode"] != 0:
         return response

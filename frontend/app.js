@@ -266,6 +266,7 @@ const flowHintsEl = document.getElementById("flow-hints");
 const artifactSummaryEl = document.getElementById("artifact-summary");
 const artifactLinksEl = document.getElementById("artifact-links");
 const artifactStatusBadgeEl = document.getElementById("artifact-status-badge");
+const artifactActionsEl = document.getElementById("artifact-actions");
 
 const savedCompilerUrl = window.localStorage.getItem("pixi_compiler_url");
 const savedPortsByBoard = JSON.parse(window.localStorage.getItem("pixi_ports_by_board") || "{}");
@@ -279,6 +280,7 @@ window.localStorage.setItem("pixi_compiler_url", migratedCompilerUrl);
 projectNameInput.value = window.localStorage.getItem("pixi_project_name") || DEFAULT_PROJECT_NAME;
 let lastCompilerHealth = null;
 let lastDetectedPorts = [];
+let lastFlashManifest = null;
 
 let progressValue = 0;
 let progressTimer = null;
@@ -392,6 +394,8 @@ function updateRuntimeHints(data = null) {
 function setArtifactState(status, summary, links = []) {
   artifactSummaryEl.textContent = summary;
   artifactLinksEl.innerHTML = "";
+  artifactActionsEl.innerHTML = "";
+  lastFlashManifest = null;
 
   artifactStatusBadgeEl.className = "artifact-badge";
   if (status === "ok") {
@@ -416,6 +420,144 @@ function setArtifactState(status, summary, links = []) {
   }
 }
 
+async function loadEsptoolModule() {
+  return import("https://unpkg.com/esptool-js/lib/index.js");
+}
+
+async function fetchArtifactBinary(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`No se pudo descargar el artefacto (${response.status})`);
+  }
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+async function flashArtifactInBrowser() {
+  if (!lastFlashManifest?.files?.length) {
+    throw new Error("No hay un artefacto listo para cargar en la placa.");
+  }
+
+  if (!("serial" in navigator)) {
+    throw new Error("Este navegador no soporta Web Serial. Usa Chrome o Edge.");
+  }
+
+  setBusyState(true);
+  startFakeProgress(true);
+
+  let transport = null;
+
+  try {
+    const { ESPLoader, Transport } = await loadEsptoolModule();
+    const port = await navigator.serial.requestPort();
+    transport = new Transport(port, true);
+
+    const logs = [];
+    const terminal = {
+      clean() {
+        logs.length = 0;
+      },
+      writeLine(data) {
+        logs.push(data);
+        serialStatusEl.textContent = data;
+      },
+      write(data) {
+        logs.push(data);
+      },
+    };
+
+    const loader = new ESPLoader({
+      transport,
+      baudrate: 115200,
+      terminal,
+      debugLogging: false,
+    });
+
+    const chip = await loader.main();
+    serialStatusEl.textContent = `Placa detectada: ${chip}. Descargando firmware...`;
+
+    const fileArray = [];
+    for (const file of lastFlashManifest.files) {
+      const data = await fetchArtifactBinary(file.url);
+      fileArray.push({
+        data,
+        address: Number.parseInt(file.address, 16),
+      });
+    }
+
+    serialStatusEl.textContent = "Escribiendo firmware en la placa...";
+
+    await loader.writeFlash({
+      fileArray,
+      flashMode: "keep",
+      flashFreq: "keep",
+      flashSize: "keep",
+      eraseAll: false,
+      compress: true,
+      reportProgress(_fileIndex, written, total) {
+        const percent = total ? Math.min(99, Math.round((written / total) * 100)) : 0;
+        setProgress(percent, `Cargando firmware a la placa... ${percent}%`, "Carga local");
+      },
+    });
+
+    await loader.after("hard_reset");
+    await transport.disconnect();
+    transport = null;
+    stopFakeProgress(100, "Firmware cargado correctamente desde este equipo.", "Carga local");
+    serialStatusEl.textContent = "Carga local completada correctamente.";
+  } catch (error) {
+    if (transport) {
+      try {
+        await transport.disconnect();
+      } catch {
+        // ignorado
+      }
+    }
+    stopFakeProgress(0, `Error: ${error.message}`, "Carga local");
+    serialStatusEl.textContent = `La carga local fallo: ${error.message}`;
+    throw error;
+  } finally {
+    setBusyState(false);
+  }
+}
+
+function setFlashManifest(data) {
+  const manifest = data?.flash_manifest;
+  const artifactUrls = data?.artifact_urls || {};
+
+  if (!manifest?.files?.length) {
+    return;
+  }
+
+  lastFlashManifest = {
+    ...manifest,
+    files: manifest.files
+      .map((file) => ({
+        ...file,
+        url: artifactUrls[file.label],
+      }))
+      .filter((file) => Boolean(file.url)),
+  };
+
+  if (!lastFlashManifest.files.length) {
+    lastFlashManifest = null;
+    return;
+  }
+
+  const flashButton = document.createElement("button");
+  flashButton.type = "button";
+  flashButton.className = "artifact-action-button";
+  flashButton.textContent = "Cargar en esta placa";
+  flashButton.addEventListener("click", async () => {
+    try {
+      await flashArtifactInBrowser();
+    } catch (error) {
+      backendResponseEl.textContent = `Error durante la carga local:\n\n${error.message}`;
+    }
+  });
+
+  artifactActionsEl.appendChild(flashButton);
+}
+
 function renderArtifactResult(data, upload = false) {
   const links = [];
   const artifactUrls = data?.artifact_urls || {};
@@ -435,6 +577,9 @@ function renderArtifactResult(data, upload = false) {
       ? data.message || "Compilacion y carga completadas."
       : data.next_step_hint || data.message || "Compilacion completada.";
     setArtifactState("ok", summary, links);
+    if (!upload) {
+      setFlashManifest(data);
+    }
     return;
   }
 
