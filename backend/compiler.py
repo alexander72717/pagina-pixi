@@ -129,8 +129,8 @@ def build_sketch_bundle(
         "artifact_files": {
             "sketch": ino_path.name,
             "workspace": workspace_path.name,
-            "binary": binary_path.name if binary_path.exists() else None,
-            "merged_binary": merged_binary_path.name if merged_binary_path.exists() else None,
+            "binary": f"build/{binary_path.name}" if binary_path.exists() else None,
+            "merged_binary": f"build/{merged_binary_path.name}" if merged_binary_path.exists() else None,
         },
         "compile_mode": "arduino-cli",
         "sketch_code": sketch_code,
@@ -145,7 +145,7 @@ def build_sketch_bundle(
             "files": [
                 {
                     "label": "merged_binary",
-                    "filename": merged_binary_path.name,
+                    "filename": f"build/{merged_binary_path.name}",
                     "address": "0x0",
                 }
             ],
