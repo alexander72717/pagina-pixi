@@ -265,6 +265,16 @@ pre {
   background: linear-gradient(135deg, #0f766e, #14b8a6);
 }
 
+esp-web-install-button::part(button) {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  cursor: pointer;
+}
+
 .progress-header {
   display: flex;
   justify-content: space-between;

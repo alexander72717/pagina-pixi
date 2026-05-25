@@ -420,106 +420,6 @@ function setArtifactState(status, summary, links = []) {
   }
 }
 
-async function loadEsptoolModule() {
-  return import("https://esm.sh/esptool-js");
-}
-
-async function fetchArtifactBinary(url) {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`No se pudo descargar el artefacto (${response.status})`);
-  }
-  return new Uint8Array(await response.arrayBuffer());
-}
-
-async function flashArtifactInBrowser() {
-  if (!lastFlashManifest?.files?.length) {
-    throw new Error("No hay un artefacto listo para cargar en la placa.");
-  }
-
-  if (!("serial" in navigator)) {
-    throw new Error("Este navegador no soporta Web Serial. Usa Chrome o Edge.");
-  }
-
-  setBusyState(true);
-  startFakeProgress(true);
-
-  let transport = null;
-
-  try {
-    const { ESPLoader, Transport } = await loadEsptoolModule();
-    const port = await navigator.serial.requestPort();
-    transport = new Transport(port, true);
-
-    const logs = [];
-    const terminal = {
-      clean() {
-        logs.length = 0;
-      },
-      writeLine(data) {
-        logs.push(data);
-        serialStatusEl.textContent = data;
-      },
-      write(data) {
-        logs.push(data);
-      },
-    };
-
-    const loader = new ESPLoader({
-      transport,
-      baudrate: 115200,
-      terminal,
-      debugLogging: false,
-    });
-
-    const chip = await loader.main();
-    serialStatusEl.textContent = `Placa detectada: ${chip}. Descargando firmware...`;
-
-    const fileArray = [];
-    for (const file of lastFlashManifest.files) {
-      const data = await fetchArtifactBinary(file.url);
-      fileArray.push({
-        data,
-        address: Number.parseInt(file.address, 16),
-      });
-    }
-
-    serialStatusEl.textContent = "Escribiendo firmware en la placa...";
-
-    await loader.writeFlash({
-      fileArray,
-      flashMode: "keep",
-      flashFreq: "keep",
-      flashSize: "keep",
-      eraseAll: false,
-      compress: true,
-      reportProgress(_fileIndex, written, total) {
-        const percent = total ? Math.min(99, Math.round((written / total) * 100)) : 0;
-        setProgress(percent, `Cargando firmware a la placa... ${percent}%`, "Carga local");
-      },
-    });
-
-    await loader.after("hard_reset");
-    await transport.disconnect();
-    transport = null;
-    stopFakeProgress(100, "Firmware cargado correctamente desde este equipo.", "Carga local");
-    serialStatusEl.textContent = "Carga local completada correctamente.";
-  } catch (error) {
-    if (transport) {
-      try {
-        await transport.disconnect();
-      } catch {
-        // ignorado
-      }
-    }
-    stopFakeProgress(0, `Error: ${error.message}`, "Carga local");
-    serialStatusEl.textContent = `La carga local fallo: ${error.message}`;
-    throw error;
-  } finally {
-    setBusyState(false);
-  }
-}
-
 function setFlashManifest(data) {
   const artifactUrls = data?.artifact_urls || {};
   const manifest =
@@ -557,15 +457,54 @@ function setFlashManifest(data) {
     return;
   }
 
-  const flashButton = document.createElement("button");
-  flashButton.type = "button";
-  flashButton.className = "artifact-action-button";
-  flashButton.textContent = "Cargar en esta placa";
-  flashButton.addEventListener("click", async () => {
-    try {
-      await flashArtifactInBrowser();
-    } catch (error) {
-      backendResponseEl.textContent = `Error durante la carga local:\n\n${error.message}`;
+  const chipFamilyMap = {
+    esp32s3: "ESP32-S3",
+    esp32c3: "ESP32-C3",
+    esp32: "ESP32",
+  };
+  const chipFamily =
+    chipFamilyMap[lastFlashManifest.chip_family] ||
+    chipFamilyMap[data?.fqbn?.split(":").pop()] ||
+    "ESP32";
+
+  const manifestPayload = {
+    name: normalizeProjectName(),
+    version: data?.artifact_id || "build-local",
+    builds: [
+      {
+        chipFamily,
+        parts: lastFlashManifest.files.map((file) => ({
+          path: file.url,
+          offset: Number.parseInt(file.address, 16),
+        })),
+      },
+    ],
+  };
+
+  const blob = new Blob([JSON.stringify(manifestPayload)], { type: "application/json" });
+  const manifestUrl = URL.createObjectURL(blob);
+
+  const flashButton = document.createElement("esp-web-install-button");
+  flashButton.setAttribute("manifest", manifestUrl);
+  flashButton.installSupportedText = "Cargar en esta placa";
+  flashButton.overrides = {
+    checkSameFirmware(manifest) {
+      return manifest;
+    },
+  };
+  flashButton.addEventListener("state-changed", (event) => {
+    const state = event.detail;
+    if (state?.state === "writing" && state?.details?.percentage != null) {
+      const percent = Math.round(state.details.percentage);
+      setProgress(percent, `Cargando firmware a la placa... ${percent}%`, "Carga local");
+    } else if (state?.state === "finished") {
+      stopFakeProgress(100, "Firmware cargado correctamente desde este equipo.", "Carga local");
+      serialStatusEl.textContent = "Carga local completada correctamente.";
+    } else if (state?.state === "error") {
+      const details = state?.details?.details;
+      const message = details?.message || details || "La carga local fallo.";
+      stopFakeProgress(0, String(message), "Carga local");
+      serialStatusEl.textContent = `La carga local fallo: ${message}`;
     }
   });
 
