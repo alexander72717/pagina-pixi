@@ -575,6 +575,11 @@ function setFlashManifest(data) {
 function renderArtifactResult(data, upload = false) {
   const links = [];
   const artifactUrls = data?.artifact_urls || {};
+  const looksLikeLegacyCompiler =
+    data?.status === "ok" &&
+    !artifactUrls.merged_binary &&
+    !data?.flash_manifest &&
+    data?.board === "esp32-s3-zero";
 
   if (artifactUrls.binary) {
     links.push({ label: "Descargar .bin", url: artifactUrls.binary });
@@ -590,6 +595,20 @@ function renderArtifactResult(data, upload = false) {
   }
 
   if (data?.status === "ok") {
+    if (looksLikeLegacyCompiler) {
+      setArtifactState(
+        "error",
+        [
+          "La compilacion termino, pero el compiler service que respondio todavia no expone el artefacto necesario para la carga local desde el navegador.",
+          "",
+          "Eso normalmente significa que la PC que hace de compilador sigue corriendo una version antigua del backend.",
+          "Actualiza esa PC con el ultimo codigo y reinicia el compiler service antes de volver a compilar.",
+        ].join("\n"),
+        links
+      );
+      return;
+    }
+
     const summary = upload
       ? data.message || "Compilacion y carga completadas."
       : data.next_step_hint || data.message || "Compilacion completada.";
