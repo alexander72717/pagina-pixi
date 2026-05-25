@@ -421,7 +421,7 @@ function setArtifactState(status, summary, links = []) {
 }
 
 async function loadEsptoolModule() {
-  return import("https://unpkg.com/esptool-js/lib/index.js");
+  return import("https://esm.sh/esptool-js");
 }
 
 async function fetchArtifactBinary(url) {
