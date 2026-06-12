@@ -315,6 +315,10 @@ button {
   transition: transform 0.18s ease, filter 0.18s ease;
 }
 
+.primary-action {
+  background: linear-gradient(135deg, #0f766e, #22c55e);
+}
+
 button:hover {
   transform: translateY(-1px);
   filter: saturate(1.08);

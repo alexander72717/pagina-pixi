@@ -383,11 +383,11 @@ function updateRuntimeHints(data = null) {
   }
 
   if (data?.upload_supported && localUploadPossible) {
-    flowHintsEl.textContent = "Compilar crea archivos del programa. Compilar y subir ademas intenta cargarlos a la placa conectada en esta misma maquina.";
+    flowHintsEl.textContent = "Flujo recomendado: compila el programa y luego usa Cargar en esta placa para programar la ESP32 desde este navegador.";
   } else if (data?.upload_supported && !localUploadPossible) {
-    flowHintsEl.textContent = "Este compilador remoto puede subir a una placa conectada en su propia maquina, pero no a la placa USB de este equipo. Aqui conviene compilar y luego cargar localmente.";
+    flowHintsEl.textContent = "Flujo recomendado: compila usando el PC compilador y luego carga localmente en la placa conectada a este equipo.";
   } else {
-    flowHintsEl.textContent = "Compilar crea archivos descargables. La carga a la placa debe hacerse desde un equipo con acceso local al hardware.";
+    flowHintsEl.textContent = "Flujo recomendado: compila para generar el firmware y luego cargalo desde el equipo que tiene la placa conectada.";
   }
 }
 
@@ -550,7 +550,7 @@ function renderArtifactResult(data, upload = false) {
 
     const summary = upload
       ? data.message || "Compilacion y carga completadas."
-      : data.next_step_hint || data.message || "Compilacion completada.";
+      : "Firmware listo. Ahora conecta la placa a este equipo y usa Cargar en esta placa.";
     setArtifactState("ok", summary, links);
     if (!upload) {
       setFlashManifest(data);
@@ -743,14 +743,14 @@ function stopFakeProgress(finalValue, message, title = "Proceso actual") {
 }
 
 function startFakeProgress(upload = false) {
-  stopFakeProgress(5, upload ? "Preparando compilacion y subida..." : "Preparando compilacion...");
+  stopFakeProgress(5, upload ? "Preparando compilacion y subida desde el compilador..." : "Preparando compilacion...");
   const target = upload ? 90 : 82;
   progressTimer = window.setInterval(() => {
     const increment = progressValue < 20 ? 4 : progressValue < 50 ? 2.5 : 0.8;
     if (progressValue < target) {
       setProgress(
         progressValue + increment,
-        upload ? "Compilando y preparando la carga a la placa..." : "Compilando el proyecto..."
+        upload ? "Compilando y usando el puerto USB del compilador..." : "Compilando el proyecto..."
       );
     }
   }, upload ? 500 : 400);
@@ -938,14 +938,14 @@ async function sendSketch(upload = false) {
       "error",
       "La compilacion remota puede funcionar, pero la carga USB todavia depende de una accion local en el equipo donde esta conectada la placa."
     );
-    stopFakeProgress(0, "La subida remota no esta disponible en este flujo.", "Compilar y subir");
+    stopFakeProgress(0, "La subida remota no esta disponible en este flujo.", "Carga desde compilador");
     return;
   }
 
   if (isInsecureCompilerEndpointFromSecurePage()) {
     backendResponseEl.textContent = getCompilerEndpointErrorMessage();
     serialStatusEl.textContent = "La compilacion desde Render hacia un compiler endpoint HTTP local esta bloqueada por el navegador.";
-    stopFakeProgress(0, "Conexion bloqueada antes de iniciar.", upload ? "Compilar y subir" : "Compilar sketch");
+    stopFakeProgress(0, "Conexion bloqueada antes de iniciar.", upload ? "Carga desde compilador" : "Compilar");
     setArtifactState("error", "La conexion al compilador local fue bloqueada antes de crear artefactos.");
     return;
   }
@@ -987,16 +987,16 @@ async function sendSketch(upload = false) {
       stopFakeProgress(
         data.status === "ok" ? 100 : 0,
         data.message || "Proceso finalizado.",
-        upload ? "Compilar y subir" : "Compilar sketch"
+        upload ? "Compilar y subir desde el compilador" : "Compilar"
       );
     } catch {
       backendResponseEl.textContent = `El backend no devolvio JSON.\n\nHTTP ${response.status}\n\n${rawText}`;
-      stopFakeProgress(0, "La operacion termino con una respuesta inesperada.", upload ? "Compilar y subir" : "Compilar sketch");
+      stopFakeProgress(0, "La operacion termino con una respuesta inesperada.", upload ? "Compilar y subir desde el compilador" : "Compilar");
       setArtifactState("error", "La compilacion respondio de forma inesperada y no se pudieron interpretar artefactos.");
     }
   } catch (error) {
     backendResponseEl.textContent = `Error enviando al backend: ${error.message}\n\n${getCompilerEndpointErrorMessage()}`;
-    stopFakeProgress(0, `Error: ${error.message}`, upload ? "Compilar y subir" : "Compilar sketch");
+    stopFakeProgress(0, `Error: ${error.message}`, upload ? "Compilar y subir desde el compilador" : "Compilar");
     setArtifactState("error", "No se pudo completar la solicitud al compilador.");
   } finally {
     setBusyState(false);
