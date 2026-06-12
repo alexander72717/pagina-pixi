@@ -92,6 +92,7 @@ El sistema ya demostro que puede:
 - subir por USB cuando la placa esta en la maquina que corre el compilador
 - exponer un compilador local por HTTPS
 - recibir solicitudes desde otros equipos de la misma red
+- compilar en una maquina y cargar el firmware desde el navegador de otra maquina
 
 Eso significa que la parte de "compilacion como servicio" ya quedo probada.
 
@@ -99,12 +100,12 @@ Eso significa que la parte de "compilacion como servicio" ya quedo probada.
 
 El flujo actual todavia no representa la experiencia final del producto.
 
-Problema principal:
+Limite principal:
 
-- si otro equipo usa la web, la compilacion puede hacerse en la PC principal
-- pero la carga por USB sigue dependiendo de la PC principal
+- el flujo distribuido ya funciona como prueba tecnica
+- todavia hay que simplificarlo para que no dependa de explicar endpoints, certificados o direcciones IP
 
-Eso es util para pruebas tecnicas, pero no es la experiencia plug and play que queremos.
+Eso es util para pruebas tecnicas, pero todavia no es la experiencia plug and play que queremos.
 
 ## 7. Cambio de direccion acordado
 
@@ -180,7 +181,7 @@ Objetivo:
 
 Estado:
 
-- pendiente
+- iniciada y validada como prueba tecnica
 
 ### Fase 4 - Servidor de compilacion real
 
@@ -197,11 +198,11 @@ Estado:
 
 Los siguientes cambios deseados quedan oficialmente anotados asi:
 
-1. hacer mas clara en la interfaz la diferencia entre `compilar` y `subir`
-2. mostrar enlaces o acciones mas utiles cuando la compilacion termina
-3. investigar el flujo correcto de carga local para `ESP32-S3 Zero`
-4. reducir todavia mas la configuracion visible en modo normal
-5. preparar un backend que pueda migrar a un servidor real sin rehacer la API
+1. reducir todavia mas la configuracion visible en modo normal
+2. mejorar la deteccion y seleccion automatica del compiler endpoint
+3. mejorar los mensajes de error del flujo `Cargar en esta placa`
+4. preparar un backend que pueda migrar a un servidor real sin rehacer la API
+5. convertir el flujo probado en una experiencia mas cercana a plug and play
 
 ## 12. Decision de producto importante
 

@@ -101,6 +101,7 @@ El proyecto ya valido varias partes importantes:
 - compilacion real para `ESP32-S3 Zero`
 - subida real por USB en entorno local
 - comunicacion entre la web publica y un compilador local
+- compilacion desde un PC y carga local desde otro PC usando la web
 - control del LED desde bloques
 - base inicial para hardware del robot
 
@@ -115,6 +116,15 @@ Ahora el backend puede devolver:
 - `artifact_urls`
 
 Eso significa que la compilacion remota ya puede dejar artefactos descargables, lo cual es un paso importante hacia el modelo final donde el servidor compila y el cliente decide como cargar el resultado.
+
+Tambien ya se valido el flujo:
+
+1. abrir la web en un equipo cliente
+2. pedir compilacion al PC compilador
+3. recibir el firmware compilado
+4. cargar el firmware en la placa conectada al equipo cliente
+
+Ese flujo es importante porque se acerca mucho mas al comportamiento final del producto.
 
 ## Flujo recomendado hoy
 
@@ -138,6 +148,15 @@ Este flujo sirve para:
 - validar la arquitectura distribuida
 - probar el sistema desde otros equipos
 - seguir evolucionando la API de compilacion
+
+El flujo recomendado en esta opcion es:
+
+1. pulsar `Compilar`
+2. esperar el resultado de compilacion
+3. conectar la placa al equipo cliente
+4. pulsar `Cargar en esta placa`
+
+El boton avanzado `Compilar y subir desde el compilador` queda solo para pruebas donde la placa esta conectada directamente a la maquina compiladora.
 
 ## Estado de la placa principal
 
@@ -202,6 +221,8 @@ Importante:
 - ambos equipos deben estar en la misma red
 - la IP puede cambiar entre casa y trabajo
 - por eso el endpoint remoto puede necesitar actualizarse
+
+En el equipo cliente, despues de compilar, el camino normal es usar `Cargar en esta placa`. Esa accion usa el navegador del cliente para acceder al USB local.
 
 ## Documentacion de arquitectura
 
