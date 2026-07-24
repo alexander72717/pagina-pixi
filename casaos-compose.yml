@@ -1,6 +1,7 @@
 services:
   pixi-blocks-lab:
     image: ghcr.io/alexander72717/pagina-pixi:latest
+    pull_policy: always
     container_name: pixi-blocks-lab
     restart: unless-stopped
     environment:

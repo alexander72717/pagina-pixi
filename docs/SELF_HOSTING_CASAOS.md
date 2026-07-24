@@ -174,6 +174,55 @@ Tag: latest
 
 No pongas `:latest` dentro del campo `Docker Image` si CasaOS tambien tiene un campo separado para `Tag`.
 
+## Si ya esta publico y todavia falla
+
+Si el paquete ya aparece como `Public`, pero CasaOS sigue fallando, normalmente significa que CasaOS guardo una configuracion vieja o esta intentando iniciar una app creada con campos incompletos.
+
+La forma mas limpia de corregirlo es:
+
+1. borra la app fallida de Pixi en CasaOS
+2. vuelve al boton `+`
+3. elige instalacion personalizada por `Docker Compose` si aparece
+4. pega el contenido de `casaos-compose.yml`
+5. instala de nuevo
+
+El compose recomendado para CasaOS usa:
+
+```yaml
+image: ghcr.io/alexander72717/pagina-pixi:latest
+pull_policy: always
+```
+
+`pull_policy: always` le dice a CasaOS/Docker que intente descargar la imagen nueva y no se quede usando una copia vieja.
+
+Si CasaOS no te deja pegar compose y solo te deja llenar campos manuales, usa:
+
+```text
+Docker Image: ghcr.io/alexander72717/pagina-pixi
+Tag: latest
+Title: Pixi Blocks Lab
+Web UI port: 8080
+Container port: 10000
+Network: bridge
+```
+
+Variables de entorno:
+
+```text
+PORT=10000
+PIXI_RUNTIME_MODE=local
+PIXI_FORCE_LOCAL=true
+PIXI_USE_HTTPS=false
+```
+
+Despues de instalar, abre:
+
+```text
+http://IP_DEL_SERVIDOR:8080/api/health
+```
+
+Si eso no carga, el contenedor no esta arrancando bien o el puerto no quedo publicado.
+
 ## Logs de SSH de CasaOS no son logs de Pixi
 
 Si ves mensajes como estos:
