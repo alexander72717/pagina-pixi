@@ -133,6 +133,76 @@ La respuesta correcta debe incluir algo parecido a:
 
 Si `compile_supported` aparece como `false`, Pixi cree que esta en modo web solamente y no esta configurado como compilador.
 
+## Error `denied` al instalar en CasaOS
+
+Si CasaOS muestra un error parecido a:
+
+```text
+Error response from daemon: error from registry: denied denied
+```
+
+significa que Docker no pudo descargar la imagen desde GitHub Container Registry.
+
+Las causas mas comunes son:
+
+- la imagen todavia se esta construyendo en GitHub Actions
+- el paquete Docker existe, pero esta privado
+- el nombre de la imagen o el tag quedaron mal escritos
+
+Primero revisa que la build haya terminado correctamente:
+
+```text
+https://github.com/alexander72717/pagina-pixi/actions
+```
+
+Debe aparecer `Build Docker image` con check verde.
+
+Despues revisa la visibilidad del paquete:
+
+```text
+https://github.com/users/alexander72717/packages/container/package/pagina-pixi
+```
+
+En `Package settings`, cambia la visibilidad a `Public`.
+
+En CasaOS los campos deben quedar asi:
+
+```text
+Docker Image: ghcr.io/alexander72717/pagina-pixi
+Tag: latest
+```
+
+No pongas `:latest` dentro del campo `Docker Image` si CasaOS tambien tiene un campo separado para `Tag`.
+
+## Logs de SSH de CasaOS no son logs de Pixi
+
+Si ves mensajes como estos:
+
+```text
+connect ssh error
+ssh: handshake failed
+dial tcp 127.0.0.1:8080: connect: connection refused
+```
+
+eso no es el error interno de Pixi.
+
+Eso significa que CasaOS intento abrir una terminal SSH y no pudo autenticarse o se intento conectar al puerto equivocado.
+
+Para diagnosticar Pixi necesitamos logs del contenedor, normalmente con algo como:
+
+```bash
+docker logs pixi-blocks-lab --tail 80
+```
+
+Si no tienes terminal, revisa desde la interfaz de CasaOS si la app tiene alguna opcion llamada:
+
+- `Logs`
+- `App Logs`
+- `Container Logs`
+- `Error Info`
+
+Si no aparece ninguna, primero confirma que la imagen se pueda descargar y que la app tenga el puerto `8080 -> 10000`.
+
 ## Flujo normal de uso
 
 1. Abre `http://IP_DEL_SERVIDOR:8080`.
