@@ -257,6 +257,7 @@ pagina pixi/
 |-- docs/
 |-- firmware/
 |-- frontend/
+|-- casaos-compose.yml
 |-- Dockerfile
 `-- render.yaml
 ```

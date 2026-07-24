@@ -25,9 +25,54 @@ Firmware listo para descargar/cargar desde el navegador
 
 La carga por USB no ocurre en el servidor. La placa debe estar conectada al computador que abre la pagina y pulsa `Cargar en esta placa`.
 
-## Opcion recomendada en CasaOS
+## Opcion recomendada en CasaOS sin terminal
 
-Usa el archivo:
+Si no tienes terminal en CasaOS o no estas en la misma red que el servidor, usa el boton `+` de CasaOS para crear una app personalizada.
+
+En CasaOS busca una opcion parecida a:
+
+- `Custom Install`
+- `Install a customized app`
+- `Compose`
+- `Docker Compose`
+
+Luego pega este contenido:
+
+```yaml
+services:
+  pixi-blocks-lab:
+    image: ghcr.io/alexander72717/pagina-pixi:latest
+    container_name: pixi-blocks-lab
+    restart: unless-stopped
+    environment:
+      PORT: "10000"
+      PIXI_RUNTIME_MODE: "local"
+      PIXI_FORCE_LOCAL: "true"
+      PIXI_USE_HTTPS: "false"
+    ports:
+      - "8080:10000"
+    volumes:
+      - pixi-generated:/app/backend/generated
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:10000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  pixi-generated:
+```
+
+Ese mismo contenido tambien quedo guardado en:
+
+```text
+casaos-compose.yml
+```
+
+## Opcion con terminal o SSH
+
+Si tienes acceso por terminal, usa el archivo:
 
 ```text
 docker-compose.yml
