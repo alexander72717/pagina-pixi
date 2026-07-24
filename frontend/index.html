@@ -67,8 +67,10 @@
               id="compiler-url-input"
               type="text"
               value="http://127.0.0.1:5000"
+              list="compiler-url-options"
               aria-label="Compiler endpoint"
             />
+            <datalist id="compiler-url-options"></datalist>
             <input
               id="fqbn-input"
               type="text"
@@ -85,6 +87,7 @@
         <div class="runtime-panel runtime-panel-compact">
           <h2>Conexion actual</h2>
           <p id="compiler-hints">Esperando informacion del compilador...</p>
+          <div id="compiler-options" class="compiler-options"></div>
           <p id="port-hints">Aun no se detectan puertos.</p>
           <p id="flow-hints">Compilar genera archivos. Subir envia ese resultado a la placa conectada.</p>
         </div>

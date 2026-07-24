@@ -50,7 +50,7 @@ Sirve para:
 - guardar proyectos
 - pedir compilacion
 
-Esta web puede publicarse en internet, por ejemplo con `Render`.
+Esta web puede publicarse en internet, por ejemplo con `Render`, o en un servidor propio con `CasaOS`.
 
 ### 2. Compiler Service
 
@@ -65,19 +65,29 @@ Sirve para:
 
 ## Como funciona la arquitectura hoy
 
-La arquitectura actual es un paso intermedio entre prototipo y producto final.
+La arquitectura actual ya puede funcionar de dos formas.
 
-Funciona asi:
+### Prototipo anterior con Render
 
 - `Render` publica la web
 - una PC local puede correr el Compiler Service
 - la web puede pedirle compilacion a ese servicio
 
-Eso nos permite:
+Ese flujo sirvio para:
 
 - avanzar sin pagar todavia un servidor de compilacion potente
 - probar la separacion entre interfaz y compilacion
 - seguir construyendo el producto con una base mas escalable
+
+### Migracion a servidor propio
+
+Ahora tambien existe un flujo recomendado para servidor propio:
+
+- tu servidor Ubuntu/CasaOS publica la web
+- el mismo servidor compila usando `arduino-cli`
+- el navegador del usuario carga el firmware en la placa conectada a su equipo
+
+Este flujo se acerca mas a la arquitectura final porque ya no depende de Render ni de tener PowerShell abierto en tu PC principal.
 
 ## Importante: compilacion y carga no son lo mismo
 
@@ -229,6 +239,7 @@ En el equipo cliente, despues de compilar, el camino normal es usar `Cargar en e
 La explicacion completa de la arquitectura y del plan a futuro esta aqui:
 
 - [docs/ARCHITECTURE_ROADMAP.md](C:\Users\samue\Desktop\Spixers\codigo\pagina pixi\docs\ARCHITECTURE_ROADMAP.md)
+- [docs/SELF_HOSTING_CASAOS.md](C:\Users\samue\Desktop\Spixers\codigo\pagina pixi\docs\SELF_HOSTING_CASAOS.md)
 
 Ese documento responde cosas como:
 

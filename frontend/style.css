@@ -201,6 +201,34 @@ pre {
   color: var(--muted);
 }
 
+.compiler-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 4px;
+}
+
+.compiler-option {
+  max-width: 100%;
+  padding: 8px 12px;
+  background: rgba(15, 118, 110, 0.1);
+  color: #0f766e;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  font-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compiler-option:hover {
+  background: rgba(15, 118, 110, 0.16);
+}
+
+.compiler-option-active {
+  background: #dbece7;
+  color: #0f766e;
+}
+
 .artifacts-header {
   display: flex;
   justify-content: space-between;

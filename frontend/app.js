@@ -1,7 +1,15 @@
 const isFrontendDevServer = window.location.hostname === "127.0.0.1" && window.location.port === "5500";
 const BACKEND_URL = isFrontendDevServer ? "http://127.0.0.1:5000" : window.location.origin;
-const DEFAULT_COMPILER_URL =
+const LOCAL_COMPILER_URL =
   window.location.protocol === "https:" ? "https://localhost:5443" : "http://127.0.0.1:5000";
+const DEFAULT_COMPILER_URL =
+  isFrontendDevServer ? "http://127.0.0.1:5000" : window.location.origin;
+const DEFAULT_COMPILER_URLS = [
+  "http://127.0.0.1:5000",
+  "http://localhost:5000",
+  "https://localhost:5443",
+  "https://pixi-blocks-lab.onrender.com",
+];
 const DEFAULT_PROJECT_NAME = "mi_proyecto";
 const DEFAULT_BOARD_ID = "esp32-s3-zero";
 const DEFAULT_FQBN = "esp32:esp32:esp32s3";
@@ -261,6 +269,8 @@ const progressPercentEl = document.getElementById("progress-percent");
 const progressBarEl = document.getElementById("progress-bar");
 const progressMessageEl = document.getElementById("progress-message");
 const compilerHintsEl = document.getElementById("compiler-hints");
+const compilerOptionsEl = document.getElementById("compiler-options");
+const compilerUrlOptionsEl = document.getElementById("compiler-url-options");
 const portHintsEl = document.getElementById("port-hints");
 const flowHintsEl = document.getElementById("flow-hints");
 const artifactSummaryEl = document.getElementById("artifact-summary");
@@ -328,19 +338,34 @@ function persistCompilerUrl() {
   window.localStorage.setItem("pixi_compiler_url", getCompilerUrl());
 }
 
+function shouldReplaceCompilerUrlWithSameOrigin(data) {
+  if (isFrontendDevServer || !data?.compile_supported || data?.service_role === "web") {
+    return false;
+  }
+
+  return !savedCompilerUrl || DEFAULT_COMPILER_URLS.includes(savedCompilerUrl);
+}
+
+function normalizeCompilerCandidates(candidates) {
+  const unique = [];
+
+  for (const candidate of candidates || []) {
+    const normalized = String(candidate || "").trim().replace(/\/$/, "");
+
+    if (normalized && !unique.includes(normalized)) {
+      unique.push(normalized);
+    }
+  }
+
+  return unique;
+}
+
 function getStoredCompilerCandidates() {
   return JSON.parse(window.localStorage.getItem("pixi_compiler_candidates") || "[]");
 }
 
 function saveCompilerCandidates(candidates) {
-  const unique = [];
-
-  for (const candidate of candidates || []) {
-    if (candidate && !unique.includes(candidate)) {
-      unique.push(candidate);
-    }
-  }
-
+  const unique = normalizeCompilerCandidates(candidates).slice(0, 8);
   window.localStorage.setItem("pixi_compiler_candidates", JSON.stringify(unique));
 }
 
@@ -352,12 +377,52 @@ function getCompilerCandidateList() {
   const candidates = [getCompilerUrl(), ...getStoredCompilerCandidates()];
 
   if (window.location.protocol === "https:") {
-    candidates.push("https://localhost:5443");
+    candidates.push(LOCAL_COMPILER_URL);
   } else {
-    candidates.push("http://127.0.0.1:5000");
+    candidates.push(LOCAL_COMPILER_URL);
   }
 
-  return [...new Set(candidates.filter(Boolean))];
+  return normalizeCompilerCandidates(candidates);
+}
+
+function renderCompilerOptions(data = null) {
+  const detectedEndpoints = data?.recommended_lan_compiler_endpoints || [];
+  const candidates = normalizeCompilerCandidates([
+    getCompilerUrl(),
+    ...(data?.recommended_compiler_endpoint ? [data.recommended_compiler_endpoint] : []),
+    ...detectedEndpoints,
+    ...getStoredCompilerCandidates(),
+    ...getCompilerCandidateList(),
+  ]);
+  const currentEndpoint = getCompilerUrl();
+
+  compilerOptionsEl.innerHTML = "";
+  compilerUrlOptionsEl.innerHTML = "";
+
+  for (const candidate of candidates) {
+    const option = document.createElement("option");
+    option.value = candidate;
+    compilerUrlOptionsEl.appendChild(option);
+  }
+
+  for (const candidate of candidates.slice(0, 5)) {
+    const button = document.createElement("button");
+    const isCurrent = candidate === currentEndpoint;
+
+    button.type = "button";
+    button.className = isCurrent ? "compiler-option compiler-option-active" : "compiler-option";
+    button.textContent = isCurrent ? `Actual: ${candidate}` : `Usar ${candidate}`;
+    button.title = candidate;
+    button.disabled = isCurrent;
+    button.addEventListener("click", async () => {
+      compilerUrlInput.value = candidate;
+      persistCompilerUrl();
+      updateRuntimeHints(lastCompilerHealth);
+      await checkCompiler();
+    });
+
+    compilerOptionsEl.appendChild(button);
+  }
 }
 
 function updateRuntimeHints(data = null) {
@@ -370,6 +435,7 @@ function updateRuntimeHints(data = null) {
   compilerHintsEl.textContent = endpoints.length
     ? `Compilador actual: ${visibleEndpoint}. Opciones detectadas: ${endpoints.join(" | ")}`
     : `Compilador actual: ${visibleEndpoint}`;
+  renderCompilerOptions(data);
 
   if (lastDetectedPorts.length) {
     const summary = lastDetectedPorts
@@ -828,7 +894,10 @@ async function checkBackend() {
     if (data.boards) {
       setBoardOptions(data.boards);
     }
-    if (data.recommended_compiler_endpoint && !isFrontendDevServer) {
+    if (shouldReplaceCompilerUrlWithSameOrigin(data)) {
+      compilerUrlInput.value = window.location.origin;
+      persistCompilerUrl();
+    } else if (data.recommended_compiler_endpoint && !isFrontendDevServer && !savedCompilerUrl) {
       compilerUrlInput.value = data.recommended_compiler_endpoint;
       persistCompilerUrl();
     }
