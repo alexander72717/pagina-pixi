@@ -25,6 +25,30 @@ Firmware listo para descargar/cargar desde el navegador
 
 La carga por USB no ocurre en el servidor. La placa debe estar conectada al computador que abre la pagina y pulsa `Cargar en esta placa`.
 
+## Estado actual validado
+
+El despliegue en CasaOS ya logro:
+
+- levantar la pagina desde el servidor
+- descargar la imagen Docker desde GitHub Container Registry
+- ejecutar el backend dentro del contenedor
+- compilar para `ESP32-S3 Zero` usando `arduino-cli`
+- generar `binary` y `merged_binary` como artefactos descargables
+
+Una respuesta exitosa de compilacion debe tener:
+
+```json
+{
+  "status": "ok",
+  "message": "Sketch compilado correctamente.",
+  "compile_result": {
+    "returncode": 0
+  }
+}
+```
+
+Si ves eso, la compilacion ya funciona. El siguiente reto ya no es compilar, sino publicar con HTTPS y mantener la carga local desde el navegador.
+
 ## Opcion recomendada en CasaOS sin terminal
 
 Si no tienes terminal en CasaOS o no estas en la misma red que el servidor, usa el boton `+` de CasaOS para crear una app personalizada.
@@ -272,6 +296,77 @@ http://IP_DEL_SERVIDOR:8080
 ```
 
 Mas adelante, cuando queramos hacerlo mas publico o mas estable, lo ideal sera poner HTTPS delante usando un proxy como Nginx Proxy Manager, Cloudflare Tunnel o el sistema de proxy que prefieras en CasaOS.
+
+## Pagina privada vs pagina publica
+
+Si abres Pixi con una direccion como:
+
+```text
+http://100.x.x.x:8080
+```
+
+esa direccion pertenece a Tailscale. No es publica para todo internet.
+
+Solo pueden verla:
+
+- tus dispositivos conectados a la misma cuenta/red de Tailscale
+- usuarios o equipos que tengan permiso dentro de tu tailnet
+
+Para una persona cualquiera en internet, esa URL no existe.
+
+## Opciones para hacer Pixi publico
+
+### Opcion A: Tailscale Funnel
+
+Tailscale Funnel permite exponer un servicio de tu red Tailscale hacia internet con HTTPS.
+
+Ventajas:
+
+- aprovecha que ya estas usando Tailscale
+- no tienes que abrir puertos del router
+- Tailscale oculta la IP real del servidor
+- entrega una URL HTTPS de Tailscale
+
+Limitaciones:
+
+- depende de Tailscale
+- usa dominios de Tailscale, no tu dominio propio normal
+- Funnel tiene limitaciones de puertos y politicas
+- sigue siendo mejor para prototipo, demos y primeras pruebas publicas
+
+Segun la documentacion oficial de Tailscale, Funnel expone un servicio local a internet usando una URL HTTPS y requiere tener Funnel habilitado en la tailnet.
+
+### Opcion B: Cloudflare Tunnel
+
+Cloudflare Tunnel permite publicar tu servidor sin abrir puertos entrantes.
+
+Ventajas:
+
+- recomendado para una publicacion mas seria
+- puedes usar un dominio propio
+- no expones directamente la IP del servidor
+- Cloudflare entrega HTTPS
+
+Limitaciones:
+
+- requiere configurar Cloudflare
+- idealmente necesitas un dominio
+- agrega una pieza mas a la arquitectura
+
+Segun la documentacion oficial de Cloudflare, Tunnel conecta servicios propios a Cloudflare mediante una conexion saliente, sin abrir puertos publicos en el router.
+
+## Recomendacion actual
+
+Para este momento del proyecto, el camino recomendado es:
+
+1. mantener Pixi funcionando en CasaOS por Tailscale
+2. validar compilacion varias veces
+3. probar si `Cargar en esta placa` funciona desde `http://100.x.x.x:8080`
+4. si la carga local falla por seguridad del navegador, pasar a HTTPS
+5. para primera publicacion externa, probar Tailscale Funnel
+6. para producto mas serio, migrar a Cloudflare Tunnel con dominio propio
+
+No conviene abrir puertos del router todavia. Es mas riesgoso y no nos aporta mucho en esta fase.
 
 ## Que ya no necesitas hacer
 

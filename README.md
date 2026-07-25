@@ -89,6 +89,13 @@ Ahora tambien existe un flujo recomendado para servidor propio:
 
 Este flujo se acerca mas a la arquitectura final porque ya no depende de Render ni de tener PowerShell abierto en tu PC principal.
 
+Estado actual de esta migracion:
+
+- Pixi ya corre en CasaOS
+- la pagina ya abre desde Tailscale
+- la compilacion en el servidor ya fue validada
+- falta decidir y configurar la publicacion publica con HTTPS
+
 ## Importante: compilacion y carga no son lo mismo
 
 Este punto es clave para entender el proyecto:
