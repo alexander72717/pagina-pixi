@@ -387,6 +387,8 @@ Si el boton `Cargar en esta placa` no aparece, revisa:
 - que el navegador sea Chrome o Edge
 - que estes en un computador, no en un telefono
 
+La interfaz normal ahora mantiene visibles solo los pasos principales. Las descargas `.bin`, el sketch y el workspace quedan dentro de `Descargas avanzadas` para no confundir durante el uso normal.
+
 La carga local no se hace desde el servidor. El servidor entrega el firmware; el navegador del usuario habla con la ESP32 conectada por USB.
 
 ### Opcion B: Cloudflare Tunnel

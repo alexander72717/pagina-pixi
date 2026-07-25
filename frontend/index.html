@@ -35,11 +35,11 @@
             <p class="quick-start-label">Modo listo para usar</p>
             <h2>ESP32-S3 Zero</h2>
             <p class="quick-start-copy">
-              Conecta el cerebro, abre tu proyecto y compila. La configuracion
-              avanzada queda oculta para no estorbar en el uso normal.
+              Crea bloques, compila y luego carga el firmware en la placa
+              conectada a este computador.
             </p>
           </div>
-          <div class="board-badge">Placa objetivo: ESP32-S3 Zero</div>
+          <div class="board-badge">Servidor listo + carga local</div>
         </div>
 
         <div class="toolbar toolbar-primary">
@@ -52,7 +52,21 @@
           <button id="save-project-btn">Guardar proyecto</button>
           <button id="load-project-btn">Cargar proyecto</button>
           <button id="generate-btn" class="primary-action">Compilar</button>
-          <button id="serial-btn">Buscar puerto USB</button>
+        </div>
+
+        <div class="simple-flow">
+          <div class="flow-step">
+            <strong>1. Programa</strong>
+            <span>Arrastra bloques para crear la logica.</span>
+          </div>
+          <div class="flow-step">
+            <strong>2. Compila</strong>
+            <span>El servidor genera el firmware.</span>
+          </div>
+          <div class="flow-step">
+            <strong>3. Carga</strong>
+            <span>Conecta la ESP32 y pulsa cargar.</span>
+          </div>
         </div>
 
         <details class="advanced-panel">
@@ -80,23 +94,24 @@
             <input id="port-input" type="text" value="COM5" aria-label="Puerto" />
             <button id="run-check">Probar backend</button>
             <button id="compiler-check">Probar compilador</button>
+            <button id="serial-btn">Buscar puerto USB</button>
             <button id="upload-btn">Compilar y subir desde el compilador</button>
+          </div>
+          <div class="runtime-panel runtime-panel-compact">
+            <h2>Conexion actual</h2>
+            <p id="compiler-hints">Esperando informacion del compilador...</p>
+            <div id="compiler-options" class="compiler-options"></div>
+            <p id="port-hints">Aun no se detectan puertos.</p>
+            <p id="flow-hints">Compilar genera archivos. Subir envia ese resultado a la placa conectada.</p>
           </div>
         </details>
 
-        <div class="runtime-panel runtime-panel-compact">
-          <h2>Conexion actual</h2>
-          <p id="compiler-hints">Esperando informacion del compilador...</p>
-          <div id="compiler-options" class="compiler-options"></div>
-          <p id="port-hints">Aun no se detectan puertos.</p>
-          <p id="flow-hints">Compilar genera archivos. Subir envia ese resultado a la placa conectada.</p>
-        </div>
         <div class="artifacts-panel">
           <div class="artifacts-header">
-            <h2>Resultado de compilacion</h2>
+            <h2>Siguiente paso</h2>
             <span id="artifact-status-badge" class="artifact-badge artifact-badge-idle">Sin artefactos</span>
           </div>
-          <p id="artifact-summary">Cuando compiles, aqui apareceran los archivos generados y el siguiente paso recomendado.</p>
+          <p id="artifact-summary">Compila tu proyecto y aqui aparecera el boton para cargarlo en la ESP32.</p>
           <div id="artifact-links" class="artifact-links"></div>
           <div id="artifact-actions" class="artifact-actions"></div>
         </div>
@@ -112,12 +127,13 @@
         </div>
         <div class="content-grid">
           <div id="blocklyDiv"></div>
-          <div class="code-panel">
+          <details class="code-panel debug-panel">
+            <summary>Ver codigo y respuesta tecnica</summary>
             <h2>Codigo generado</h2>
             <pre id="generated-code"></pre>
             <h2>Respuesta del backend</h2>
             <pre id="backend-response"></pre>
-          </div>
+          </details>
         </div>
       </section>
     </main>

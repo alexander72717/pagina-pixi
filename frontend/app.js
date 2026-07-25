@@ -513,15 +513,40 @@ function setArtifactState(status, summary, links = []) {
     artifactStatusBadgeEl.textContent = "Sin artefactos";
   }
 
-  for (const link of links) {
-    const anchor = document.createElement("a");
-    anchor.className = "artifact-link";
-    anchor.href = link.url;
-    anchor.target = "_blank";
-    anchor.rel = "noopener noreferrer";
-    anchor.textContent = link.label;
-    artifactLinksEl.appendChild(anchor);
+  if (links.length) {
+    const downloadsPanel = document.createElement("details");
+    downloadsPanel.className = "downloads-panel";
+    const downloadsSummary = document.createElement("summary");
+    downloadsSummary.textContent = "Descargas avanzadas";
+    downloadsPanel.appendChild(downloadsSummary);
+    artifactLinksEl.appendChild(downloadsPanel);
+
+    const downloadsList = document.createElement("div");
+    downloadsList.className = "artifact-links-list";
+    downloadsPanel.appendChild(downloadsList);
+
+    for (const link of links) {
+      const anchor = document.createElement("a");
+      anchor.className = "artifact-link";
+      anchor.href = link.url;
+      anchor.target = "_blank";
+      anchor.rel = "noopener noreferrer";
+      anchor.textContent = link.label;
+      downloadsList.appendChild(anchor);
+    }
   }
+}
+
+function getFlashReadinessMessage() {
+  if (!window.isSecureContext) {
+    return "Abre esta pagina por HTTPS para cargar firmware desde el navegador.";
+  }
+
+  if (!("serial" in navigator)) {
+    return "Usa Chrome o Edge en computador para cargar la ESP32 por USB.";
+  }
+
+  return "Conecta la ESP32 por USB a este computador y pulsa Cargar en esta placa.";
 }
 
 function setFlashManifest(data) {
@@ -590,15 +615,18 @@ function setFlashManifest(data) {
 
   const guidance = document.createElement("p");
   guidance.className = "artifact-hint";
-  guidance.textContent =
-    window.isSecureContext && "serial" in navigator
-      ? "Listo para carga local: usa Chrome o Edge en este computador y conecta la ESP32 por USB."
-      : "Para cargar en la placa necesitas abrir esta pagina por HTTPS en Chrome o Edge desde el computador que tiene la ESP32 conectada.";
+  guidance.textContent = getFlashReadinessMessage();
   artifactActionsEl.appendChild(guidance);
 
   const flashButton = document.createElement("esp-web-install-button");
   flashButton.setAttribute("manifest", manifestUrl);
   flashButton.installSupportedText = "Cargar en esta placa";
+  flashButton.className = "flash-install";
+  flashButton.innerHTML = `
+    <button slot="activate" class="flash-action-button" type="button">Cargar en esta placa</button>
+    <span slot="unsupported" class="flash-warning">Este navegador no permite cargar por USB. Usa Chrome o Edge en computador.</span>
+    <span slot="not-allowed" class="flash-warning">Activa permisos del navegador para usar el puerto USB.</span>
+  `;
   flashButton.overrides = {
     checkSameFirmware(manifest) {
       return manifest;
@@ -662,10 +690,17 @@ function renderArtifactResult(data, upload = false) {
 
     const summary = upload
       ? data.message || "Compilacion y carga completadas."
-      : "Firmware listo. Ahora conecta la placa a este equipo y usa Cargar en esta placa.";
+      : "Firmware listo. El siguiente paso es cargarlo en la ESP32 conectada a este computador.";
     setArtifactState("ok", summary, links);
     if (!upload) {
       setFlashManifest(data);
+      if (!lastFlashManifest) {
+        const fallbackMessage = [
+          "La compilacion termino, pero no se encontro un firmware listo para carga directa.",
+          "Usa Descargar merged .bin o revisa la respuesta tecnica.",
+        ].join(" ");
+        artifactActionsEl.innerHTML = `<p class="artifact-hint">${fallbackMessage}</p>`;
+      }
     }
     return;
   }
