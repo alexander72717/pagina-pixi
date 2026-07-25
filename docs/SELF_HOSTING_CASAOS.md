@@ -34,6 +34,7 @@ El despliegue en CasaOS ya logro:
 - ejecutar el backend dentro del contenedor
 - compilar para `ESP32-S3 Zero` usando `arduino-cli`
 - generar `binary` y `merged_binary` como artefactos descargables
+- publicar la pagina con HTTPS usando Tailscale Funnel
 
 Una respuesta exitosa de compilacion debe tener:
 
@@ -47,7 +48,13 @@ Una respuesta exitosa de compilacion debe tener:
 }
 ```
 
-Si ves eso, la compilacion ya funciona. El siguiente reto ya no es compilar, sino publicar con HTTPS y mantener la carga local desde el navegador.
+Si ves eso, la compilacion ya funciona. El siguiente reto ya no es compilar, sino mantener la carga local desde el navegador y luego decidir si la publicacion publica se queda en Funnel o migra a un dominio propio.
+
+URL publica actual por Funnel:
+
+```text
+https://servidor-spixers.tailc32d79.ts.net/
+```
 
 ## Opcion recomendada en CasaOS sin terminal
 
@@ -335,6 +342,28 @@ Limitaciones:
 - sigue siendo mejor para prototipo, demos y primeras pruebas publicas
 
 Segun la documentacion oficial de Tailscale, Funnel expone un servicio local a internet usando una URL HTTPS y requiere tener Funnel habilitado en la tailnet.
+
+Comandos usados en el servidor:
+
+```bash
+sudo tailscale funnel --bg 8080
+tailscale funnel status
+```
+
+Resultado esperado:
+
+```text
+https://servidor-spixers.tailc32d79.ts.net (Funnel on)
+|-- / proxy http://127.0.0.1:8080
+```
+
+Para apagar Funnel:
+
+```bash
+sudo tailscale funnel --https=443 off
+```
+
+Importante: al entrar por la URL publica de Funnel, Pixi debe compilar usando el mismo dominio `https://servidor-spixers.tailc32d79.ts.net`. Si en modo avanzado aparece guardado un endpoint viejo como `http://100.x.x.x:8080`, cambialo por la URL HTTPS de Funnel o limpia la configuracion guardada del navegador.
 
 ### Opcion B: Cloudflare Tunnel
 

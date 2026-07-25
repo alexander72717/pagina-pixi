@@ -94,7 +94,8 @@ Estado actual de esta migracion:
 - Pixi ya corre en CasaOS
 - la pagina ya abre desde Tailscale
 - la compilacion en el servidor ya fue validada
-- falta decidir y configurar la publicacion publica con HTTPS
+- la publicacion publica por Tailscale Funnel ya fue activada
+- falta validar el flujo completo de carga local desde la URL HTTPS publica
 
 ## Importante: compilacion y carga no son lo mismo
 
