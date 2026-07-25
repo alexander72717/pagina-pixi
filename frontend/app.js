@@ -325,6 +325,26 @@ function isLoopbackHostname(hostname) {
   return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "[::1]";
 }
 
+function isPrivateNetworkHostname(hostname) {
+  const normalized = (hostname || "").toLowerCase();
+  const ipv4Parts = normalized.split(".").map((part) => Number.parseInt(part, 10));
+
+  if (normalized.endsWith(".local")) {
+    return true;
+  }
+
+  if (ipv4Parts.length !== 4 || ipv4Parts.some((part) => Number.isNaN(part))) {
+    return false;
+  }
+
+  return (
+    ipv4Parts[0] === 10 ||
+    ipv4Parts[0] === 100 ||
+    (ipv4Parts[0] === 172 && ipv4Parts[1] >= 16 && ipv4Parts[1] <= 31) ||
+    (ipv4Parts[0] === 192 && ipv4Parts[1] === 168)
+  );
+}
+
 function isLikelyLocalCompilerEndpoint() {
   const compilerUrl = getCompilerUrlObject();
   if (!compilerUrl) {
@@ -343,7 +363,25 @@ function shouldReplaceCompilerUrlWithSameOrigin(data) {
     return false;
   }
 
-  return !savedCompilerUrl || DEFAULT_COMPILER_URLS.includes(savedCompilerUrl);
+  const currentCompilerUrl = getCompilerUrlObject();
+
+  if (!currentCompilerUrl) {
+    return true;
+  }
+
+  if (getCompilerUrl() === window.location.origin) {
+    return false;
+  }
+
+  if (!savedCompilerUrl || DEFAULT_COMPILER_URLS.includes(savedCompilerUrl)) {
+    return true;
+  }
+
+  if (window.location.protocol === "https:" && currentCompilerUrl.protocol === "http:") {
+    return true;
+  }
+
+  return isPrivateNetworkHostname(currentCompilerUrl.hostname);
 }
 
 function normalizeCompilerCandidates(candidates) {
@@ -549,6 +587,14 @@ function setFlashManifest(data) {
 
   const blob = new Blob([JSON.stringify(manifestPayload)], { type: "application/json" });
   const manifestUrl = URL.createObjectURL(blob);
+
+  const guidance = document.createElement("p");
+  guidance.className = "artifact-hint";
+  guidance.textContent =
+    window.isSecureContext && "serial" in navigator
+      ? "Listo para carga local: usa Chrome o Edge en este computador y conecta la ESP32 por USB."
+      : "Para cargar en la placa necesitas abrir esta pagina por HTTPS en Chrome o Edge desde el computador que tiene la ESP32 conectada.";
+  artifactActionsEl.appendChild(guidance);
 
   const flashButton = document.createElement("esp-web-install-button");
   flashButton.setAttribute("manifest", manifestUrl);

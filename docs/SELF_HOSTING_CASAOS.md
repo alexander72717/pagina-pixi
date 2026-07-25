@@ -365,6 +365,30 @@ sudo tailscale funnel --https=443 off
 
 Importante: al entrar por la URL publica de Funnel, Pixi debe compilar usando el mismo dominio `https://servidor-spixers.tailc32d79.ts.net`. Si en modo avanzado aparece guardado un endpoint viejo como `http://100.x.x.x:8080`, cambialo por la URL HTTPS de Funnel o limpia la configuracion guardada del navegador.
 
+La web tambien intenta corregir esto automaticamente: si esta abierta por HTTPS y detecta que el endpoint guardado es una IP privada o una URL `http://`, cambia al mismo origen HTTPS de la pagina.
+
+## Flujo de carga local desde Funnel
+
+El flujo esperado ahora es:
+
+1. abrir `https://servidor-spixers.tailc32d79.ts.net/`
+2. conectar la `ESP32-S3 Zero` por USB al computador que esta abriendo la pagina
+3. usar Chrome o Edge
+4. pulsar `Compilar`
+5. esperar `Firmware listo`
+6. pulsar `Cargar en esta placa`
+7. aceptar el puerto USB cuando el navegador lo pida
+
+Si el boton `Cargar en esta placa` no aparece, revisa:
+
+- que la compilacion haya terminado con `status: ok`
+- que exista `merged_binary` en la respuesta
+- que la pagina este abierta por `https://`
+- que el navegador sea Chrome o Edge
+- que estes en un computador, no en un telefono
+
+La carga local no se hace desde el servidor. El servidor entrega el firmware; el navegador del usuario habla con la ESP32 conectada por USB.
+
 ### Opcion B: Cloudflare Tunnel
 
 Cloudflare Tunnel permite publicar tu servidor sin abrir puertos entrantes.

@@ -293,6 +293,13 @@ pre {
   background: linear-gradient(135deg, #0f766e, #14b8a6);
 }
 
+.artifact-hint {
+  flex-basis: 100%;
+  margin: 0 0 2px;
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+
 esp-web-install-button::part(button) {
   border: none;
   border-radius: 999px;
