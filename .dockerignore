@@ -1,10 +1,13 @@
 .git
 .venv
+node_modules
 backend/.venv
 backend/__pycache__
 backend/generated
+build_temp
 **/__pycache__
 *.pyc
 *.pyo
 *.pyd
 *.log
+arduino-cli.exe

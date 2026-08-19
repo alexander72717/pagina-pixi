@@ -2,6 +2,8 @@
 
 Pixi Blocks Lab es una plataforma educativa para programar robots con bloques visuales y placas `ESP32`.
 
+Esta version toma como base el prototipo Node/Express de `mmayag/PaginaPixi` y lo adapta para instalarse en `CasaOS` usando Docker.
+
 La idea del proyecto es simple:
 
 1. crear un programa con bloques
@@ -39,7 +41,7 @@ El proyecto ya puede:
 
 Hoy el sistema se divide en dos piezas principales:
 
-### 1. Web App
+### 1. Web App Node/Express
 
 Es la interfaz que ve la persona usuaria.
 
@@ -50,9 +52,9 @@ Sirve para:
 - guardar proyectos
 - pedir compilacion
 
-Esta web puede publicarse en internet, por ejemplo con `Render`, o en un servidor propio con `CasaOS`.
+Esta web queda publicada desde el mismo servidor `Node/Express`.
 
-### 2. Compiler Service
+### 2. Compiler Service integrado
 
 Es el servicio que hace el trabajo de compilacion.
 
@@ -61,11 +63,18 @@ Sirve para:
 - recibir el codigo generado
 - crear el sketch
 - compilar con `arduino-cli`
-- opcionalmente subir por USB cuando corre en una maquina local
+- devolver el binario para cargarlo desde el navegador
 
 ## Como funciona la arquitectura hoy
 
-La arquitectura actual ya puede funcionar de dos formas.
+La arquitectura actual esta orientada a CasaOS:
+
+- CasaOS ejecuta el contenedor Docker
+- el contenedor sirve la pagina
+- el contenedor compila con `arduino-cli`
+- el navegador del usuario usa Web Serial para conectar la placa por USB
+
+La carpeta `build_temp` se genera durante la compilacion y no se sube a GitHub. El contenedor la crea automaticamente.
 
 ### Prototipo anterior con Render
 

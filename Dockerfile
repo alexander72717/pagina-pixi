@@ -1,27 +1,31 @@
-FROM python:3.11-slim
+FROM node:20-bookworm-slim
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+ENV NODE_ENV=production
+ENV PORT=10000
+ENV ARDUINO_CONFIG_FILE=/etc/arduino-cli.yaml
 
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl ca-certificates git build-essential \
+    && apt-get install -y --no-install-recommends curl ca-certificates git python3 build-essential \
     && rm -rf /var/lib/apt/lists/*
-
-COPY backend/requirements.txt /app/backend/requirements.txt
-
-RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 
 RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh
 
 RUN arduino-cli config init --dest-file /etc/arduino-cli.yaml --overwrite \
     && arduino-cli --config-file /etc/arduino-cli.yaml config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json \
     && arduino-cli --config-file /etc/arduino-cli.yaml core update-index \
-    && arduino-cli --config-file /etc/arduino-cli.yaml core install esp32:esp32
+    && arduino-cli --config-file /etc/arduino-cli.yaml core install esp32:esp32 \
+    && arduino-cli --config-file /etc/arduino-cli.yaml lib install ESP32Servo
 
-ENV ARDUINO_CONFIG_FILE=/etc/arduino-cli.yaml
+COPY package*.json ./
+RUN npm ci --omit=dev
 
-COPY . /app
+COPY public ./public
+COPY server.js ./server.js
 
-CMD ["/bin/sh", "-c", "gunicorn --chdir backend -b 0.0.0.0:${PORT:-10000} app:app"]
+RUN mkdir -p /app/build_temp
+
+EXPOSE 10000
+
+CMD ["npm", "start"]

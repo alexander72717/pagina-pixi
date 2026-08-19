@@ -8,6 +8,8 @@ La idea de esta migracion es:
 2. ese mismo servidor compila el codigo para la ESP32
 3. el navegador del usuario carga el firmware en la placa conectada a su propio equipo
 
+La version actual usa el prototipo `Node/Express` tomado de `mmayag/PaginaPixi` y adaptado para Docker/CasaOS. El contenedor instala `arduino-cli` para Linux; no se usa el `arduino-cli.exe` de Windows.
+
 ## Como queda la arquitectura
 
 ```text
@@ -77,13 +79,11 @@ services:
     restart: unless-stopped
     environment:
       PORT: "10000"
-      PIXI_RUNTIME_MODE: "local"
-      PIXI_FORCE_LOCAL: "true"
-      PIXI_USE_HTTPS: "false"
+      PIXI_FQBN: "esp32:esp32:esp32s3"
     ports:
       - "8080:10000"
     volumes:
-      - pixi-generated:/app/backend/generated
+      - pixi-build-temp:/app/build_temp
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:10000/api/health"]
       interval: 30s
@@ -92,7 +92,7 @@ services:
       start_period: 60s
 
 volumes:
-  pixi-generated:
+  pixi-build-temp:
 ```
 
 Ese mismo contenido tambien quedo guardado en:
@@ -132,16 +132,14 @@ http://192.168.1.50:8080
 El `docker-compose.yml` usa estas variables:
 
 ```yaml
-PIXI_RUNTIME_MODE: "local"
-PIXI_FORCE_LOCAL: "true"
-PIXI_USE_HTTPS: "false"
+PORT: "10000"
+PIXI_FQBN: "esp32:esp32:esp32s3"
 ```
 
 Esto le dice a Pixi:
 
-- no eres Render
-- si puedes compilar
-- sirve la web y el compilador juntos
+- escucha dentro del contenedor en el puerto `10000`
+- compila para `ESP32-S3 Zero`
 
 ## Como probar que funciona
 
@@ -156,13 +154,12 @@ La respuesta correcta debe incluir algo parecido a:
 ```json
 {
   "status": "ok",
-  "runtime_mode": "local",
-  "compile_supported": true,
-  "service_role": "compiler-and-web"
+  "service": "node-casaos",
+  "fqbn": "esp32:esp32:esp32s3"
 }
 ```
 
-Si `compile_supported` aparece como `false`, Pixi cree que esta en modo web solamente y no esta configurado como compilador.
+Si eso responde `status: ok`, la pagina y el backend estan vivos.
 
 ## Error `denied` al instalar en CasaOS
 
@@ -221,10 +218,15 @@ El compose recomendado para CasaOS usa:
 
 ```yaml
 image: ghcr.io/alexander72717/pagina-pixi:latest
-pull_policy: always
 ```
 
-`pull_policy: always` le dice a CasaOS/Docker que intente descargar la imagen nueva y no se quede usando una copia vieja.
+No usamos `pull_policy` en `casaos-compose.yml` porque algunas versiones de CasaOS o Docker Compose lo rechazan durante la instalacion y muestran un error generico como `Installation failed`.
+
+Si CasaOS se queda usando una imagen vieja, la forma compatible de actualizar es:
+
+1. borrar la app de Pixi
+2. revisar si CasaOS permite borrar la imagen antigua en su seccion de imagenes Docker
+3. instalar Pixi otra vez usando `casaos-compose.yml`
 
 Si CasaOS no te deja pegar compose y solo te deja llenar campos manuales, usa:
 
@@ -241,9 +243,7 @@ Variables de entorno:
 
 ```text
 PORT=10000
-PIXI_RUNTIME_MODE=local
-PIXI_FORCE_LOCAL=true
-PIXI_USE_HTTPS=false
+PIXI_FQBN=esp32:esp32:esp32s3
 ```
 
 Despues de instalar, abre:
@@ -253,6 +253,27 @@ http://IP_DEL_SERVIDOR:8080/api/health
 ```
 
 Si eso no carga, el contenedor no esta arrancando bien o el puerto no quedo publicado.
+
+## Sobre `build_temp`
+
+El repositorio fuente externo traia una carpeta `build_temp` con archivos como:
+
+```text
+sketch.ino.bin
+sketch.ino.elf
+sketch.ino.map
+sketch.ino.merged.bin
+```
+
+Esos archivos son resultados temporales de compilacion. No conviene subirlos a GitHub ni meterlos en la imagen Docker porque pesan mucho y se regeneran cada vez que un usuario compila.
+
+En CasaOS usamos este volumen:
+
+```yaml
+pixi-build-temp:/app/build_temp
+```
+
+Asi el contenedor tiene un lugar donde crear compilaciones sin ensuciar el repositorio.
 
 ## Logs de SSH de CasaOS no son logs de Pixi
 
