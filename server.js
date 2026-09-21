@@ -19,13 +19,14 @@ function runArduinoCli(args) {
             ? ['--config-file', ARDUINO_CONFIG_FILE, ...args]
             : args;
 
-        execFile('arduino-cli', finalArgs, { windowsHide: true }, (error, stdout, stderr) => {
+        execFile('arduino-cli', finalArgs, { timeout: 180000, windowsHide: true }, (error, stdout, stderr) => {
             resolve({
                 ok: !error,
                 command: ['arduino-cli', ...finalArgs],
                 stdout,
                 stderr,
                 code: error?.code ?? 0,
+                killed: Boolean(error?.killed),
                 message: error?.message || ''
             });
         });
@@ -84,7 +85,9 @@ app.post('/api/compile', async (req, res) => {
         console.error('[Pixi] Error de compilacion:', compileResult.stderr || compileResult.stdout);
         return res.status(500).json({
             success: false,
-            message: 'Error al compilar el codigo C++.',
+            message: compileResult.killed
+                ? 'La compilacion tardo demasiado y fue cancelada por seguridad.'
+                : 'Error al compilar el codigo C++.',
             details: compileResult.stderr || compileResult.stdout || compileResult.message,
             compile_result: compileResult
         });

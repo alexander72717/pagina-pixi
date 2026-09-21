@@ -2,6 +2,42 @@ let workspace = null;
 let port = null;
 let esploader = null;
 
+async function fetchJsonWithTimeout(url, options = {}, timeoutMs = 120000) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+        });
+
+        const responseText = await response.text();
+        let payload = null;
+
+        try {
+            payload = responseText ? JSON.parse(responseText) : null;
+        } catch (parseError) {
+            throw new Error(`El servidor respondio, pero no devolvio JSON valido. HTTP ${response.status}.`);
+        }
+
+        if (!response.ok) {
+            const details = payload?.details || payload?.message || `HTTP ${response.status}`;
+            throw new Error(details);
+        }
+
+        return payload;
+    } catch (err) {
+        if (err.name === "AbortError") {
+            throw new Error("El servidor tardo demasiado en responder. Revisa si la app de CasaOS sigue encendida o si la compilacion quedo trabada.");
+        }
+
+        throw err;
+    } finally {
+        clearTimeout(timeoutId);
+    }
+}
+
 // ==========================================================================
 // 1. REGISTRO DE BLOQUES PERSONALIZADOS
 // ==========================================================================
@@ -264,23 +300,26 @@ async function uploadToESP32S3() {
     }
 
     logTerminal("--------------------------------------------------");
-    logTerminal("[1/3] Enviando C++ al servidor local...");
+    logTerminal("[1/4] Verificando conexion con el servidor de compilacion...");
 
     try {
-        const response = await fetch('/api/compile', {
+        const health = await fetchJsonWithTimeout('/api/health', {}, 10000);
+        logTerminal(`[OK] Servidor conectado. Placa objetivo: ${health.fqbn || "ESP32"}.`);
+        logTerminal("[2/4] Enviando C++ al servidor de compilacion...");
+
+        const data = await fetchJsonWithTimeout('/api/compile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code: code })
-        });
+        }, 180000);
 
-        const data = await response.json();
         if (!data.success) {
             logTerminal(`[Error Compilación]:\n${data.details || data.message}`);
             return;
         }
 
         logTerminal("[Éxito] Compilación exitosa. Binario recibido.");
-        logTerminal("[2/3] Conectando con ESP32-S3...");
+        logTerminal("[3/4] Conectando con ESP32-S3...");
 
         const esptool = window.esptooljs || window.esptool;
         const Transport = esptool?.Transport || window.Transport;
@@ -309,7 +348,7 @@ async function uploadToESP32S3() {
         const flashAddress = data.flash?.address ?? (data.bins.merged ? 0x0 : 0x10000);
         const flashLabel = data.bins.merged ? "binario completo" : "aplicacion";
 
-        logTerminal(`[3/3] Escribiendo ${flashLabel} en memoria Flash (${flashAddress.toString(16)})...`);
+        logTerminal(`[4/4] Escribiendo ${flashLabel} en memoria Flash (${flashAddress.toString(16)})...`);
 
         const appBinString = atob(flashData);
         const appBinArray = Uint8Array.from(appBinString, c => c.charCodeAt(0));
@@ -326,6 +365,7 @@ async function uploadToESP32S3() {
 
     } catch (err) {
         logTerminal(`[Error de Carga]: ${err.message}`);
+        logTerminal("Si se quedo en la verificacion o compilacion, abre /api/health en la misma URL para confirmar que CasaOS responde.");
     }
 }
 
