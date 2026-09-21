@@ -412,6 +412,12 @@ La interfaz normal ahora mantiene visibles solo los pasos principales. Las desca
 
 La carga local no se hace desde el servidor. El servidor entrega el firmware; el navegador del usuario habla con la ESP32 conectada por USB.
 
+Importante: `http://100.92.146.126:8080` puede servir para comprobar que CasaOS responde, pero no sirve para conectar la ESP32 por Web Serial. Los navegadores bloquean Web Serial en paginas HTTP normales. Para conectar la placa usa siempre la URL HTTPS de Funnel:
+
+```text
+https://servidor-spixers.tailc32d79.ts.net/
+```
+
 ### Opcion B: Cloudflare Tunnel
 
 Cloudflare Tunnel permite publicar tu servidor sin abrir puertos entrantes.
@@ -437,7 +443,7 @@ Para este momento del proyecto, el camino recomendado es:
 
 1. mantener Pixi funcionando en CasaOS por Tailscale
 2. validar compilacion varias veces
-3. probar si `Cargar en esta placa` funciona desde `http://100.x.x.x:8080`
+3. probar si `Cargar en esta placa` funciona desde `https://servidor-spixers.tailc32d79.ts.net/`
 4. si la carga local falla por seguridad del navegador, pasar a HTTPS
 5. para primera publicacion externa, probar Tailscale Funnel
 6. para producto mas serio, migrar a Cloudflare Tunnel con dominio propio

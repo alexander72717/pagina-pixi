@@ -221,8 +221,23 @@ function setupEvents() {
 }
 
 async function connectESP32() {
+    if (!window.isSecureContext) {
+        alert(
+            "Para conectar la ESP32 por USB debes abrir Pixi con HTTPS.\n\n" +
+            "Usa la URL publica de Tailscale Funnel, por ejemplo:\n" +
+            "https://servidor-spixers.tailc32d79.ts.net/\n\n" +
+            "La direccion http://100.92.146.126:8080 sirve para ver la pagina, " +
+            "pero el navegador bloquea Web Serial en HTTP."
+        );
+        logTerminal("[Error] Web Serial requiere HTTPS o localhost. Abre Pixi desde la URL HTTPS de Tailscale Funnel.");
+        return;
+    }
+
     if (!("serial" in navigator)) {
-        alert("Abre la página en Google Chrome o Microsoft Edge.");
+        alert(
+            "Tu navegador no permite Web Serial.\n\n" +
+            "Abre Pixi en Google Chrome o Microsoft Edge actualizado."
+        );
         return;
     }
 
