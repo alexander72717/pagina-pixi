@@ -67,6 +67,7 @@ app.post('/api/compile', async (req, res) => {
     const sketchDir = path.join(buildDir, 'sketch');
     const sketchPath = path.join(sketchDir, 'sketch.ino');
 
+    fs.rmSync(buildDir, { recursive: true, force: true });
     fs.mkdirSync(sketchDir, { recursive: true });
     fs.writeFileSync(sketchPath, cppCode, 'utf8');
 
@@ -82,13 +83,19 @@ app.post('/api/compile', async (req, res) => {
     ]);
 
     if (!compileResult.ok) {
-        console.error('[Pixi] Error de compilacion:', compileResult.stderr || compileResult.stdout);
+        const failureDetails = [
+            compileResult.stderr,
+            compileResult.stdout,
+            compileResult.message
+        ].filter(Boolean).join('\n\n');
+
+        console.error('[Pixi] Error de compilacion:', failureDetails);
         return res.status(500).json({
             success: false,
             message: compileResult.killed
                 ? 'La compilacion tardo demasiado y fue cancelada por seguridad.'
                 : 'Error al compilar el codigo C++.',
-            details: compileResult.stderr || compileResult.stdout || compileResult.message,
+            details: failureDetails,
             compile_result: compileResult
         });
     }

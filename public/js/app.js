@@ -315,6 +315,9 @@ async function uploadToESP32S3() {
 
         if (!data.success) {
             logTerminal(`[Error Compilación]:\n${data.details || data.message}`);
+            if (data.compile_result?.command) {
+                logTerminal(`[Comando]: ${data.compile_result.command.join(" ")}`);
+            }
             return;
         }
 
